@@ -7,7 +7,7 @@ ASP.NET Core Proxies made easy.
 ### Install
 
 ```bash
-dotnet add AspNetCore.Proxy
+dotnet add package AspNetCore.Proxy
 ```
 
 ### Compatibility
