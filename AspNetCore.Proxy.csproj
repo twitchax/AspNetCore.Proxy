@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <AssemblyName>AspNetCore.Proxy</AssemblyName>
     <PackageId>AspNetCore.Proxy</PackageId>
     <DocumentationFile>bin\AspNetCore.Proxy.xml</DocumentationFile>
