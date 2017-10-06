@@ -51,7 +51,7 @@ namespace AspNetCore.Proxy
                         }
                     });
 
-                    return method.Invoke(null, args.Select(kvp => kvp.Value).ToArray()) as Task<string>;
+                    return method.Invoke(null, castedArgs.ToArray()) as Task<string>;
                 });
             }
         }
