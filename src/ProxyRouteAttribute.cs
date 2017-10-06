@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -38,6 +39,17 @@ namespace AspNetCore.Proxy
                 app.UseProxy(attribute.Route, args => {
                     if(args.Count() != parameters.Count())
                         throw new Exception($"Proxied generator method ({name}) parameter mismatch.");
+
+                    var castedArgs = args.Zip(parameters, (a, p) => new { ArgumentValue = a.Value.ToString(), ArgumentType = p.ParameterType, ParameterName = p.Name }).Select(z => {
+                        try
+                        {
+                            return TypeDescriptor.GetConverter(z.ArgumentType).ConvertFromString(z.ArgumentValue);
+                        }
+                        catch(Exception)
+                        { 
+                            throw new Exception($"Proxied generator method ({name}) cannot cast to {z.ArgumentType.FullName} for parameter {z.ParameterName}.");
+                        }
+                    });
 
                     return method.Invoke(null, args.Select(kvp => kvp.Value).ToArray()) as Task<string>;
                 });
