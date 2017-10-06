@@ -19,8 +19,12 @@ namespace AspNetCore.Proxy
             var dependencies = DependencyContext.Default.RuntimeLibraries;
             foreach (var library in dependencies)
             {
-                var assembly = Assembly.Load(new AssemblyName(library.Name));
-                assemblies.Add(assembly);
+                try
+                {
+                    var assembly = Assembly.Load(new AssemblyName(library.Name));
+                    assemblies.Add(assembly);
+                }
+                catch(Exception) { }
             }
             return assemblies;
         }

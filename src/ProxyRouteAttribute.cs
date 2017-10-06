@@ -25,18 +25,21 @@ namespace AspNetCore.Proxy
 
             foreach(var method in methods)
             {
+                var name = method.Name;
                 var attribute = method.GetCustomAttributes(typeof(ProxyRouteAttribute), false).First() as ProxyRouteAttribute;
                 var parameters = method.GetParameters();
-                var instance = Activator.CreateInstance(method.DeclaringType);
 
                 if(!(method.ReturnType == typeof(Task<string>)))
-                    throw new Exception("Proxied methods must return a Task<string>.");
+                    throw new Exception($"Proxied generator method ({name}) must return a Task<string>.");
+
+                if(!method.IsStatic)
+                    throw new Exception($"Proxied generator method ({name}) must be static.");
                 
                 app.UseProxy(attribute.Route, args => {
                     if(args.Count() != parameters.Count())
-                        throw new Exception("Parameter mismatch.");
+                        throw new Exception($"Proxied generator method ({name}) parameter mismatch.");
 
-                    return method.Invoke(instance, args.Select(kvp => kvp.Value).ToArray()) as Task<string>;
+                    return method.Invoke(null, args.Select(kvp => kvp.Value).ToArray()) as Task<string>;
                 });
             }
         }

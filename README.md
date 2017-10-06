@@ -16,6 +16,36 @@ Latest .NET Standard 2.0.
 
 ### Examples
 
+There are two main ways to use this library to proxy calls.
+
+You can define a map and a proxy.
+
+```csharp
+app.UseProxy("api/{arg1}/{arg2}", async (args) => {
+    // Get the proxied address.
+    return await SomeCallThatComputesAUrl(args["arg1"], args["arg2"]);
+});
+```
+
+However, you can also make the proxy look and feel almost like a route.
+
+In your `Configure(IApplicationBuilder, IHostingEnvironment)` method, add the middleware.
+
+```csharp
+app.UseProxies();
+```
+
+Then, create a static method which returns a `Task<string>` (where the `string` is the proxied URI).
+
+```csharp
+[ProxyRoute("api/{arg1}/{arg2}")]
+public static async Task<string> GetProxy(string arg1, string arg2)
+{
+    // Get the proxied address.
+    return await SomeCallThatComputesAUrl(arg1, arg2);
+}
+```
+
 ## License
 
 ```
