@@ -10,6 +10,15 @@ ASP.NET Core Proxies made easy.
 dotnet add package AspNetCore.Proxy
 ```
 
+### Test
+
+Download the source and run.
+
+```bash
+dotnet restore
+dotnet test src/Test/AspNetCore.Proxy.Tests.csproj
+```
+
 ### Compatibility
 
 Latest .NET Standard 2.0.
