@@ -4,16 +4,14 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyModel;
 
 namespace AspNetCore.Proxy
 {
-    public static class Helpers
+    internal static class Helpers
     {
-        public static IEnumerable<Assembly> GetReferencingAssemblies()
+        internal static IEnumerable<Assembly> GetReferencingAssemblies()
         {
             var assemblies = new List<Assembly>();
             var dependencies = DependencyContext.Default.RuntimeLibraries;
@@ -30,9 +28,9 @@ namespace AspNetCore.Proxy
         }
     }
 
-    public static class Extensions
+    internal static class Extensions
     {
-        public static HttpRequestMessage CreateProxyHttpRequest(this HttpContext context, string uriString)
+        private static HttpRequestMessage CreateProxyHttpRequest(this HttpContext context, string uriString)
         {
             var uri = new Uri(uriString);
             var request = context.Request;
@@ -48,14 +46,11 @@ namespace AspNetCore.Proxy
                 requestMessage.Content = streamContent;
             }
 
-            // Copy the request headers
-            foreach (var header in request.Headers)
-            {
-                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && requestMessage.Content != null)
-                {
-                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-                }
-            }
+            // Copy the request headers.
+            if(requestMessage.Content != null)
+                foreach (var header in request.Headers)
+                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
 
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
@@ -64,13 +59,13 @@ namespace AspNetCore.Proxy
             return requestMessage;
         }
 
-        public static Task<HttpResponseMessage> SendProxyHttpRequest(this HttpContext context, string proxiedAddress)
+        internal static Task<HttpResponseMessage> SendProxyHttpRequest(this HttpContext context, string proxiedAddress)
         {
             var proxiedRequest = context.CreateProxyHttpRequest(proxiedAddress);
             return new HttpClient().SendAsync(proxiedRequest, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
         
-        public static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
+        internal static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
         {
             var response = context.Response;
 
@@ -87,39 +82,10 @@ namespace AspNetCore.Proxy
 
             response.Headers.Remove("transfer-encoding");
 
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync())
+            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                await responseStream.CopyToAsync(response.Body, 81920, context.RequestAborted);
+                await responseStream.CopyToAsync(response.Body, 81920, context.RequestAborted).ConfigureAwait(false);
             }
-        }
-        
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<IDictionary<string, object>, Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null)
-        {
-            app.UseRouter(builder => {
-                builder.MapMiddlewareRoute(endpoint, proxyApp => {
-                    proxyApp.Run(async context => {
-                        try
-                        {
-                            var proxiedAddress = await getProxiedAddress(context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value));
-
-                            var proxiedResponse = await context.SendProxyHttpRequest(proxiedAddress);
-                            
-                            await context.CopyProxyHttpResponse(proxiedResponse);
-                        }
-                        catch(Exception e)
-                        {
-                            if(onFailure == null)
-                            {
-                                context.Response.StatusCode = 500;
-                                await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.");
-                                return;
-                            }
-                            
-                            await onFailure(context, e);
-                        }
-                    });
-                });
-            });
         }
     }
 }
