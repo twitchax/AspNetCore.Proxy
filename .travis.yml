@@ -4,11 +4,11 @@ mono: none
 dotnet: 2.0.0
 dist: trusty
 
-# services:
-#  - docker
-
 script:
  - dotnet restore
  - dotnet build
  - dotnet pack -c Release --include-symbols
  - dotnet test src/Test/AspNetCore.Proxy.Tests.csproj
+
+after_success:
+ - dotnet nuget push src/Core/bin/Release/AspNetCore.Proxy.*.nupkg -k $NUGET_KEY -s https://www.nuget.org/api/v2/package
