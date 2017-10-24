@@ -39,7 +39,6 @@ namespace AspNetCore.Proxy.Tests
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(responseString);
             Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
         }
     }
