@@ -54,7 +54,7 @@ namespace AspNetCore.Proxy.Tests
         {
             app.UseProxies();
 
-            app.UseProxy("api/comments/{postId}", (args) => {
+            app.UseProxy("api/comments/{postId}", (context, args) => {
                 return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
             });
         }

@@ -34,7 +34,7 @@ namespace AspNetCore.Proxy
                 if(!method.IsStatic)
                     throw new InvalidOperationException($"Proxied generator method ({name}) must be static.");
                 
-                app.UseProxy(attribute.Route, args => {
+                app.UseProxy(attribute.Route, (context, args) => {
                     if(args.Count() != parameters.Count())
                         throw new InvalidOperationException($"Proxied generator method ({name}) parameter mismatch.");
 
@@ -61,14 +61,14 @@ namespace AspNetCore.Proxy
         /// <param name="endpoint">The local route endpoint.</param>
         /// <param name="getProxiedAddress">A functor which returns the address to which the request is proxied.</param>
         /// <param name="onFailure">A catch all for failures.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<IDictionary<string, object>, Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null)
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null)
         {
             app.UseRouter(builder => {
                 builder.MapMiddlewareRoute(endpoint, proxyApp => {
                     proxyApp.Run(async context => {
                         try
                         {
-                            var proxiedAddress = await getProxiedAddress(context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
+                            var proxiedAddress = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
                             var proxiedResponse = await context.SendProxyHttpRequest(proxiedAddress).ConfigureAwait(false);
                             
                             await context.CopyProxyHttpResponse(proxiedResponse).ConfigureAwait(false);
