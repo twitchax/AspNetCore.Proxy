@@ -23,9 +23,9 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyAttribute()
+        public async Task ProxyAttributeToTask()
         {
-            var response = await _client.GetAsync("api/posts/1");
+            var response = await _client.GetAsync("api/posts/totask/1");
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
@@ -33,9 +33,69 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddleware()
+        public async Task ProxyAttributeToString()
         {
-            var response = await _client.GetAsync("api/comments/1");
+            var response = await _client.GetAsync("api/posts/tostring/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
+        }
+
+        [Fact]
+        public async Task ProxyMiddlewareWithContextAndArgsToTask()
+        {
+            var response = await _client.GetAsync("api/comments/contextandargstotask/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
+        }
+
+        [Fact]
+        public async Task ProxyMiddlewareWithArgsToTask()
+        {
+            var response = await _client.GetAsync("api/comments/argstotask/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
+        }
+
+        [Fact]
+        public async Task ProxyMiddlewareWithEmptyToTask()
+        {
+            var response = await _client.GetAsync("api/comments/emptytotask");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
+        }
+
+        [Fact]
+        public async Task ProxyMiddlewareWithContextAndArgsToString()
+        {
+            var response = await _client.GetAsync("api/comments/contextandargstostring/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
+        }
+
+        [Fact]
+        public async Task ProxyMiddlewareWithArgsToString()
+        {
+            var response = await _client.GetAsync("api/comments/argstostring/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
+        }
+
+        [Fact]
+        public async Task ProxyMiddlewareWithEmptyToString()
+        {
+            var response = await _client.GetAsync("api/comments/emptytostring");
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
@@ -54,18 +114,46 @@ namespace AspNetCore.Proxy.Tests
         {
             app.UseProxies();
 
-            app.UseProxy("api/comments/{postId}", (args) => {
+            app.UseProxy("api/comments/contextandargstotask/{postId}", (context, args) => {
+                context.GetHashCode();
                 return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
+            });
+
+            app.UseProxy("api/comments/argstotask/{postId}", (args) => {
+                return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
+            });
+
+            app.UseProxy("api/comments/emptytotask", () => {
+                return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/1");
+            });
+
+            app.UseProxy("api/comments/contextandargstostring/{postId}", (context, args) => {
+                context.GetHashCode();
+                return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
+            });
+
+            app.UseProxy("api/comments/argstostring/{postId}", (args) => {
+                return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
+            });
+
+            app.UseProxy("api/comments/emptytostring", () => {
+                return $"https://jsonplaceholder.typicode.com/comments/1";
             });
         }
     }
 
     public static class UseProxies
     {
-        [ProxyRoute("api/posts/{postId}")]
-        public static  Task<string> ProxyGoogle(int postId)
+        [ProxyRoute("api/posts/totask/{postId}")]
+        public static Task<string> ProxyGoogleToTask(int postId)
         {
             return Task.FromResult($"https://jsonplaceholder.typicode.com/posts/{postId}");
+        }
+
+        [ProxyRoute("api/posts/tostring/{postId}")]
+        public static string ProxyGoogleToString(int postId)
+        {
+            return $"https://jsonplaceholder.typicode.com/posts/{postId}";
         }
     }
 }
