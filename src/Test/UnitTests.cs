@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -40,6 +41,17 @@ namespace AspNetCore.Proxy.Tests
 
             var responseString = await response.Content.ReadAsStringAsync();
             Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
+        }
+
+        [Fact]
+        public async Task ProxyAttributePostRequest()
+        {
+            var content = new StringContent("{\"title\": \"foo\", \"body\": \"bar\", \"userId\": 1}", Encoding.UTF8, "application/json");
+            var response = await _client.PostAsync("api/posts", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("101", JObject.Parse(responseString).Value<string>("id"));
         }
 
         [Fact]
@@ -145,15 +157,21 @@ namespace AspNetCore.Proxy.Tests
     public static class UseProxies
     {
         [ProxyRoute("api/posts/totask/{postId}")]
-        public static Task<string> ProxyGoogleToTask(int postId)
+        public static Task<string> ProxyToTask(int postId)
         {
             return Task.FromResult($"https://jsonplaceholder.typicode.com/posts/{postId}");
         }
 
         [ProxyRoute("api/posts/tostring/{postId}")]
-        public static string ProxyGoogleToString(int postId)
+        public static string ProxyToString(int postId)
         {
             return $"https://jsonplaceholder.typicode.com/posts/{postId}";
+        }
+
+        [ProxyRoute("api/posts")]
+        public static string ProxyPostRequest()
+        {
+            return $"https://jsonplaceholder.typicode.com/posts";
         }
     }
 }
