@@ -55,6 +55,16 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task ProxyAttributeCatchAll()
+        {
+            var response = await _client.GetAsync("api/catchall/posts/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
+        }
+
+        [Fact]
         public async Task ProxyMiddlewareWithContextAndArgsToTask()
         {
             var response = await _client.GetAsync("api/comments/contextandargstotask/1");
@@ -172,6 +182,12 @@ namespace AspNetCore.Proxy.Tests
         public static string ProxyPostRequest()
         {
             return $"https://jsonplaceholder.typicode.com/posts";
+        }
+
+        [ProxyRoute("api/catchall/{*rest}")]
+        public static string ProxyCatchAll(string rest)
+        {
+            return $"https://jsonplaceholder.typicode.com/{rest}";
         }
     }
 }
