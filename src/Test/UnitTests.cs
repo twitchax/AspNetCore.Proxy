@@ -209,7 +209,7 @@ namespace AspNetCore.Proxy.Tests
         [Route("api/controller/posts/{postId}")]
         public Task GetPosts(int postId)
         {
-            return this.Proxy($"https://jsonplaceholder.typicode.com/posts/{postId}");
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
         }
     }
 }
