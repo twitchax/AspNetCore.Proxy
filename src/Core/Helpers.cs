@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyModel;
 
 namespace AspNetCore.Proxy
@@ -25,6 +26,27 @@ namespace AspNetCore.Proxy
                 catch(Exception) { }
             }
             return assemblies;
+        }
+
+        internal static async Task HandleProxy(HttpContext context, string uri, Func<HttpContext, Exception, Task> onFailure = null)
+        {
+            try
+            {
+                var proxiedResponse = await context.SendProxyHttpRequest(uri).ConfigureAwait(false);
+                await context.CopyProxyHttpResponse(proxiedResponse).ConfigureAwait(false);
+            }
+            catch(Exception e)
+            {
+                if(onFailure == null)
+                {
+                    // If the failures are not caught, then write a generic response.
+                    context.Response.StatusCode = 500;
+                    await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.").ConfigureAwait(false);
+                    return;
+                }
+                
+                await onFailure(context, e).ConfigureAwait(false);
+            }
         }
     }
 

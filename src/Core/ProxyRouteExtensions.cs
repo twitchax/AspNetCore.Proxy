@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
 namespace AspNetCore.Proxy
@@ -14,6 +15,22 @@ namespace AspNetCore.Proxy
     /// </summary>
     public static class ProxyExtensions
     {
+        /// <summary>
+        /// A <see cref="Controller"/> extension method which allows for a single, simple call to use a proxy
+        /// in existing controllers.
+        /// </summary>
+        /// <param name="controller">The calling controller.</param>
+        /// <param name="uri">The URI to proxy.</param>
+        /// <param name="onFailure">A failure handler (otherwise, failures result in a generic 500).</param>
+        /// <returns>
+        /// A <see cref="Task"/> which, upon completion, has proxied the specified address and copied the response contents into
+        /// the response for the <see cref="HttpContext"/>.
+        /// </returns>
+        public static Task Proxy(this Controller controller, string uri, Func<HttpContext, Exception, Task> onFailure = null)
+        {
+            return Helpers.HandleProxy(controller.HttpContext, uri, onFailure);
+        }
+
         /// <summary>
         /// Middleware which instructs the runtime to detect static methods with [<see cref="ProxyRouteAttribute"/>] and route them.
         /// </summary>
@@ -71,25 +88,8 @@ namespace AspNetCore.Proxy
             app.UseRouter(builder => {
                 builder.MapMiddlewareRoute(endpoint, proxyApp => {
                     proxyApp.Run(async context => {
-                        try
-                        {
-                            var proxiedAddress = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
-                            var proxiedResponse = await context.SendProxyHttpRequest(proxiedAddress).ConfigureAwait(false);
-                            
-                            await context.CopyProxyHttpResponse(proxiedResponse).ConfigureAwait(false);
-                        }
-                        catch(Exception e)
-                        {
-                            if(onFailure == null)
-                            {
-                                // If the failures are not caught, then write a generic response.
-                                context.Response.StatusCode = 500;
-                                await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.").ConfigureAwait(false);
-                                return;
-                            }
-                            
-                            await onFailure(context, e).ConfigureAwait(false);
-                        }
+                        var uri = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
+                        await Helpers.HandleProxy(context, uri, onFailure);
                     });
                 });
             });

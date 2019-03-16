@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -123,6 +124,16 @@ namespace AspNetCore.Proxy.Tests
             var responseString = await response.Content.ReadAsStringAsync();
             Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
         }
+
+        [Fact]
+        public async Task ProxyController()
+        {
+            var response = await _client.GetAsync("api/controller/posts/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
+        }
     }
 
     public class Startup
@@ -130,11 +141,13 @@ namespace AspNetCore.Proxy.Tests
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddRouting();
+            services.AddMvc();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             app.UseProxies();
+            app.UseMvc();
 
             app.UseProxy("api/comments/contextandargstotask/{postId}", (context, args) => {
                 context.GetHashCode();
@@ -188,6 +201,15 @@ namespace AspNetCore.Proxy.Tests
         public static string ProxyCatchAll(string rest)
         {
             return $"https://jsonplaceholder.typicode.com/{rest}";
+        }
+    }
+
+    public class MvcController : Controller
+    {
+        [Route("api/controller/posts/{postId}")]
+        public Task GetPosts(int postId)
+        {
+            return this.Proxy($"https://jsonplaceholder.typicode.com/posts/{postId}");
         }
     }
 }
