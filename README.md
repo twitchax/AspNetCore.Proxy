@@ -25,9 +25,25 @@ Latest .NET Standard 2.0.
 
 ### Examples
 
-There are two main ways to use this library to proxy calls.
+#### Existing Controller
 
-You can define a map and a proxy.
+You can use the proxy functionality on an existing `Controller` by leveraging the `Proxy` extension method.
+If this is the only feature that you use, then you do not need to configure anything in `Configure` and `ConfigureServices`.
+
+```csharp
+public class MyController : Controller
+{
+    [Route("api/posts/{postId}")]
+    public Task GetPosts(int postId)
+    {
+        return this.Proxy($"https://jsonplaceholder.typicode.com/posts/{postId}");
+    }
+}
+```
+
+#### Application Builder
+
+You can define a proxy in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
 
 ```csharp
 app.UseProxy("api/{arg1}/{arg2}", async (args) => {
@@ -36,7 +52,9 @@ app.UseProxy("api/{arg1}/{arg2}", async (args) => {
 });
 ```
 
-However, you can also make the proxy look and feel almost like a route.
+#### `ProxyRoute` Attribute
+
+You can also make the proxy look and feel almost like a route.
 
 In your `Configure(IApplicationBuilder, IHostingEnvironment)` method, add the middleware.
 
@@ -44,29 +62,18 @@ In your `Configure(IApplicationBuilder, IHostingEnvironment)` method, add the mi
 app.UseProxies();
 ```
 
-Then, create a static method which returns a `Task<string>` (where the `string` is the proxied URI).
+Then, create a static method which returns a `Task<string>` or `string` (where the `string` is the URI to proxy).
 
 ```csharp
-[ProxyRoute("api/{arg1}/{arg2}")]
+[ProxyRoute("api/posts/{arg1}/{arg2}")]
 public static async Task<string> GetProxy(string arg1, string arg2)
 {
-    // Get the proxied address.
-    return await SomeCallThatComputesAUrl(arg1, arg2);
+    var uri = await SomeCallThatComputesAUrl(arg1, arg2);
+    return uri;
 }
-```
 
-Alternatively, you can use the proxy functionality on an existing `Controller` by leveraging the `Proxy` extension method.
-If this is the only feature that you use, then you do not need to call `UseProxies` in your `Configure` method.
-
-```csharp
-public class MvcController : Controller
-{
-    [Route("api/posts/{postId}")]
-    public Task GetPosts(int postId)
-    {
-        return this.Proxy($"https://jsonplaceholder.typicode.com/posts/{postId}");
-    }
-}
+[ProxyRoute("api/comments/{postId}")]
+public static async Task<string> GetComments(int postId) => $"https://jsonplaceholder.typicode.com/posts/{postId}";
 ```
 
 ## License
