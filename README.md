@@ -25,10 +25,20 @@ Latest .NET Standard 2.0.
 
 ### Examples
 
+First, you must add the required services.
+
+```csharp
+public void ConfigureServices(IServiceCollection services)
+{
+    ...
+    services.AddProxies();
+    ...
+}
+```
+
 #### Existing Controller
 
 You can use the proxy functionality on an existing `Controller` by leveraging the `Proxy` extension method.
-If this is the only feature that you use, then you do not need to configure anything in `Configure` and `ConfigureServices`.
 
 ```csharp
 public class MyController : Controller
@@ -54,12 +64,17 @@ app.UseProxy("api/{arg1}/{arg2}", async (args) => {
 
 #### `ProxyRoute` Attribute
 
-You can also make the proxy look and feel almost like a route.
+You can also make the proxy look and feel almost like a route, but as part of a static method.
 
-In your `Configure(IApplicationBuilder, IHostingEnvironment)` method, add the middleware.
+First, add the middleware.
 
 ```csharp
-app.UseProxies();
+public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+{
+    ...
+    app.UseProxies();
+    ...
+}
 ```
 
 Then, create a static method which returns a `Task<string>` or `string` (where the `string` is the URI to proxy).

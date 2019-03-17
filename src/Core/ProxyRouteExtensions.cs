@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AspNetCore.Proxy
 {
@@ -29,6 +30,16 @@ namespace AspNetCore.Proxy
         public static Task ProxyAsync(this Controller controller, string uri, Func<HttpContext, Exception, Task> onFailure = null)
         {
             return Helpers.HandleProxy(controller.HttpContext, uri, onFailure);
+        }
+
+        /// <summary>
+        /// Adds the required services needed for proxying requests.
+        /// </summary>
+        /// <param name="services">The application service collection.</param>
+        /// <returns>The same instance.</returns>
+        public static IServiceCollection AddProxies(this IServiceCollection services)
+        {
+            return services.AddHttpClient();
         }
 
         /// <summary>

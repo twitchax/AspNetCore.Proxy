@@ -141,6 +141,7 @@ namespace AspNetCore.Proxy.Tests
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddRouting();
+            services.AddProxies();
             services.AddMvc();
         }
 

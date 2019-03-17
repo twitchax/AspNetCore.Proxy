@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyModel;
 
 namespace AspNetCore.Proxy
@@ -84,7 +85,11 @@ namespace AspNetCore.Proxy
         internal static Task<HttpResponseMessage> SendProxyHttpRequest(this HttpContext context, string proxiedAddress)
         {
             var proxiedRequest = context.CreateProxyHttpRequest(proxiedAddress);
-            return new HttpClient().SendAsync(proxiedRequest, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+
+            return context.RequestServices
+                .GetService<IHttpClientFactory>()
+                .CreateClient()
+                .SendAsync(proxiedRequest, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
         
         internal static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
