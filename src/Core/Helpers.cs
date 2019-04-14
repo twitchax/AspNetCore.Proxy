@@ -1,13 +1,13 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyModel;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyModel;
 
 namespace AspNetCore.Proxy
 {
@@ -24,7 +24,7 @@ namespace AspNetCore.Proxy
                     var assembly = Assembly.Load(new AssemblyName(library.Name));
                     assemblies.Add(assembly);
                 }
-                catch(Exception) { }
+                catch (Exception) { }
             }
             return assemblies;
         }
@@ -36,16 +36,16 @@ namespace AspNetCore.Proxy
                 var proxiedResponse = await context.SendProxyHttpRequest(uri).ConfigureAwait(false);
                 await context.CopyProxyHttpResponse(proxiedResponse).ConfigureAwait(false);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                if(onFailure == null)
+                if (onFailure == null)
                 {
                     // If the failures are not caught, then write a generic response.
                     context.Response.StatusCode = 500;
                     await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.").ConfigureAwait(false);
                     return;
                 }
-                
+
                 await onFailure(context, e).ConfigureAwait(false);
             }
         }
@@ -60,20 +60,36 @@ namespace AspNetCore.Proxy
 
             var requestMessage = new HttpRequestMessage();
             var requestMethod = request.Method;
+
+            // Copy the request headers.
+            if (requestMessage.Content != null)
+            {
+                foreach (var header in request.Headers)
+                {
+                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                    {
+                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    }
+                }
+            }
+
             if (!HttpMethods.IsGet(requestMethod) &&
                 !HttpMethods.IsHead(requestMethod) &&
                 !HttpMethods.IsDelete(requestMethod) &&
                 !HttpMethods.IsTrace(requestMethod))
             {
-                var streamContent = new StreamContent(request.Body);
-                requestMessage.Content = streamContent;
+                if (request.HasFormContentType)
+                {
+                    requestMessage.Content = new FormUrlEncodedContent(
+                        request.Form
+                            .Select(x => new KeyValuePair<string, StringValues>(x.Key, x.Value)).ToDictionary(x => x.Key, x => x.Value.ToString()));
+                }
+                else
+                {
+                    var streamContent = new StreamContent(request.Body);
+                    requestMessage.Content = streamContent;
+                }
             }
-
-            // Copy the request headers.
-            if(requestMessage.Content != null)
-                foreach (var header in request.Headers)
-                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
-                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
 
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
@@ -91,7 +107,7 @@ namespace AspNetCore.Proxy
                 .CreateClient()
                 .SendAsync(proxiedRequest, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
-        
+
         internal static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
         {
             var response = context.Response;
