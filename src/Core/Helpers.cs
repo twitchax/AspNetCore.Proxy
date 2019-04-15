@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyModel;
-using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,12 +64,8 @@ namespace AspNetCore.Proxy
             if (requestMessage.Content != null)
             {
                 foreach (var header in request.Headers)
-                {
                     if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
-                    {
                         requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-                    }
-                }
             }
 
             if (!HttpMethods.IsGet(requestMethod) &&
@@ -80,9 +75,8 @@ namespace AspNetCore.Proxy
             {
                 if (request.HasFormContentType)
                 {
-                    requestMessage.Content = new FormUrlEncodedContent(
-                        request.Form
-                            .Select(x => new KeyValuePair<string, StringValues>(x.Key, x.Value)).ToDictionary(x => x.Key, x => x.Value.ToString()));
+                    var formFields = request.Form.ToDictionary(x => x.Key, x => x.Value.ToString());
+                    requestMessage.Content = new FormUrlEncodedContent(formFields);
                 }
                 else
                 {
