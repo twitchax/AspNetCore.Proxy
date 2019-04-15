@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,6 +54,21 @@ namespace AspNetCore.Proxy.Tests
 
             var responseString = await response.Content.ReadAsStringAsync();
             Assert.Contains("101", JObject.Parse(responseString).Value<string>("id"));
+        }
+
+        [Fact]
+        public async Task ProxyAttributePostWithFormRequest()
+        {
+            var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "xyz", "123" }, { "abc", "321" } });
+            var response = await _client.PostAsync("api/posts", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var json = JObject.Parse(responseString);
+
+            Assert.Contains("101", json.Value<string>("id"));
+            Assert.Equal(json["xyz"], "123");
+            Assert.Equal(json["abc"], "321");
         }
 
         [Fact]
