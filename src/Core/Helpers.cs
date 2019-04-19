@@ -64,9 +64,7 @@ namespace AspNetCore.Proxy
             foreach (var header in request.Headers)
             {
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
-                {
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-                }
             }
 
             if (!HttpMethods.IsGet(requestMethod) &&
