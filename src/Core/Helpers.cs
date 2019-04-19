@@ -61,11 +61,12 @@ namespace AspNetCore.Proxy
             var requestMethod = request.Method;
 
             // Copy the request headers.
-            if (requestMessage.Content != null)
+            foreach (var header in request.Headers)
             {
-                foreach (var header in request.Headers)
-                    if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
-                        requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                {
+                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                }
             }
 
             if (!HttpMethods.IsGet(requestMethod) &&
