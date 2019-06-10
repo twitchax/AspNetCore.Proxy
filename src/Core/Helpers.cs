@@ -59,12 +59,7 @@ namespace AspNetCore.Proxy
 
             var requestMessage = new HttpRequestMessage();
             var requestMethod = request.Method;
-
-            // Copy the request headers.
-            foreach (var header in request.Headers)
-                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
-                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-
+            
             // Write to request conent, when necessary.
             if (!HttpMethods.IsGet(requestMethod) &&
                 !HttpMethods.IsHead(requestMethod) &&
@@ -80,6 +75,15 @@ namespace AspNetCore.Proxy
                 {
                     var streamContent = new StreamContent(request.Body);
                     requestMessage.Content = streamContent;
+                }
+            }
+            
+            // Copy the request headers.
+            foreach (var header in context.Request.Headers)
+            {
+                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                {
+                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
                 }
             }
 
