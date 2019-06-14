@@ -60,28 +60,20 @@ namespace AspNetCore.Proxy
             var requestMessage = new HttpRequestMessage();
             var requestMethod = request.Method;
 
-            // Copy the request headers.
-            foreach (var header in request.Headers)
-                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
-                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-
             // Write to request conent, when necessary.
             if (!HttpMethods.IsGet(requestMethod) &&
                 !HttpMethods.IsHead(requestMethod) &&
                 !HttpMethods.IsDelete(requestMethod) &&
                 !HttpMethods.IsTrace(requestMethod))
             {
-                if (request.HasFormContentType)
-                {
-                    var formFields = request.Form.ToDictionary(x => x.Key, x => x.Value.ToString());
-                    requestMessage.Content = new FormUrlEncodedContent(formFields);
-                }
-                else
-                {
-                    var streamContent = new StreamContent(request.Body);
-                    requestMessage.Content = streamContent;
-                }
+                var streamContent = new StreamContent(request.Body);
+                requestMessage.Content = streamContent;
             }
+
+            // Copy the request headers.
+            foreach (var header in context.Request.Headers)
+                if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                    requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
 
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;

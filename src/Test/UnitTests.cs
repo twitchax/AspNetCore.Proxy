@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -55,6 +57,26 @@ namespace AspNetCore.Proxy.Tests
             var responseString = await response.Content.ReadAsStringAsync();
             Assert.Contains("101", JObject.Parse(responseString).Value<string>("id"));
         }
+
+
+        [Fact]
+        public async Task ProxyContentHeadersPostRequest()
+        {
+            var content = "hello world";
+            var contentType = "application/xcustom";
+
+            var stringContent = new StringContent(content);
+            stringContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+            var response = await _client.PostAsync("echo/post", stringContent);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Equal(content, JObject.Parse(responseString).Value<string>("data"));
+            Assert.Equal(contentType, JObject.Parse(responseString)["headers"]["content-type"]);
+            Assert.Equal(content.Length, JObject.Parse(responseString)["headers"]["content-length"]);
+        }
+
 
         [Fact]
         public async Task ProxyAttributePostWithFormRequest()
@@ -165,6 +187,10 @@ namespace AspNetCore.Proxy.Tests
         {
             app.UseProxies();
             app.UseMvc();
+
+            app.UseProxy("echo/post", (context, args) => {
+                return Task.FromResult($"https://postman-echo.com/post");
+            });
 
             app.UseProxy("api/comments/contextandargstotask/{postId}", (context, args) => {
                 context.GetHashCode();
