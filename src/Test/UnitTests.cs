@@ -172,6 +172,16 @@ namespace AspNetCore.Proxy.Tests
             var responseString = await response.Content.ReadAsStringAsync();
             Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
         }
+
+        [Fact]
+        public async Task ProxyProcessResponse()
+        {
+            var response = await _client.GetAsync("api/photos/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.StartsWith("https://localhost", JObject.Parse(responseString).Value<string>("url"));
+        }
     }
 
     public class Startup
@@ -216,6 +226,24 @@ namespace AspNetCore.Proxy.Tests
 
             app.UseProxy("api/comments/emptytostring", () => {
                 return $"https://jsonplaceholder.typicode.com/comments/1";
+            });
+
+            app.UseProxy("api/photos/{photoId}", (args) =>
+            {
+                return $"https://jsonplaceholder.typicode.com/photos/1";
+            }, processResponseBody: responseStream =>
+            {
+
+                using (var sr = new System.IO.StreamReader(responseStream))
+                {
+                    var json = sr.ReadToEnd().Replace("via.placeholder.com", "localhost");
+                    var stream = new System.IO.MemoryStream();
+                    var sw = new System.IO.StreamWriter(stream);
+                    sw.Write(json);
+                    sw.Flush();
+                    stream.Position = 0;
+                    return stream;
+                }
             });
         }
     }

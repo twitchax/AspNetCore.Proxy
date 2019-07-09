@@ -28,12 +28,12 @@ namespace AspNetCore.Proxy
             return assemblies;
         }
 
-        internal static async Task HandleProxy(HttpContext context, string uri, Func<HttpContext, Exception, Task> onFailure = null)
+        internal static async Task HandleProxy(HttpContext context, string uri, Func<HttpContext, Exception, Task> onFailure = null, Func<System.IO.Stream, System.IO.Stream> processResponseBody = null)
         {
             try
             {
                 var proxiedResponse = await context.SendProxyHttpRequest(uri).ConfigureAwait(false);
-                await context.CopyProxyHttpResponse(proxiedResponse).ConfigureAwait(false);
+                await context.CopyProxyHttpResponse(proxiedResponse, processResponseBody).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -92,7 +92,7 @@ namespace AspNetCore.Proxy
                 .SendAsync(proxiedRequest, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 
-        internal static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
+        internal static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage, Func<System.IO.Stream, System.IO.Stream> processResponseBody = null)
         {
             var response = context.Response;
 
@@ -111,7 +111,9 @@ namespace AspNetCore.Proxy
 
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
-                await responseStream.CopyToAsync(response.Body, 81920, context.RequestAborted).ConfigureAwait(false);
+                var preparedResponseStream = processResponseBody != null ? processResponseBody(responseStream) : responseStream;
+
+                await preparedResponseStream.CopyToAsync(response.Body, 81920, context.RequestAborted).ConfigureAwait(false);
             }
         }
     }
