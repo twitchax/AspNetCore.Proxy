@@ -51,30 +51,28 @@ namespace AspNetCore.Proxy
         {
             var methods = Helpers.GetReferencingAssemblies().SelectMany(a => a.GetTypes()).SelectMany(t => t.GetMethods()).Where(m => m.GetCustomAttributes(typeof(ProxyRouteAttribute), false).Length > 0);
 
-            foreach (var method in methods)
+            foreach(var method in methods)
             {
                 var name = method.Name;
                 var attribute = method.GetCustomAttributes(typeof(ProxyRouteAttribute), false).First() as ProxyRouteAttribute;
                 var parameters = method.GetParameters();
 
-                if (method.ReturnType != typeof(Task<string>) && method.ReturnType != typeof(string))
+                if(method.ReturnType != typeof(Task<string>) && method.ReturnType != typeof(string))
                     throw new InvalidOperationException($"Proxied generator method ({name}) must return a `Task<string>` or `string`.");
 
-                if (!method.IsStatic)
+                if(!method.IsStatic)
                     throw new InvalidOperationException($"Proxied generator method ({name}) must be static.");
 
-                app.UseProxy(attribute.Route, args =>
-                {
+                app.UseProxy(attribute.Route, args => {
                     if (args.Count() != parameters.Count())
                         throw new InvalidOperationException($"Proxied generator method ({name}) parameter mismatch.");
 
-                    var castedArgs = args.Zip(parameters, (a, p) => new { ArgumentValue = a.Value.ToString(), ArgumentType = p.ParameterType, ParameterName = p.Name }).Select(z =>
-                    {
+                    var castedArgs = args.Zip(parameters, (a, p) => new { ArgumentValue = a.Value.ToString(), ArgumentType = p.ParameterType, ParameterName = p.Name }).Select(z => {
                         try
                         {
                             return TypeDescriptor.GetConverter(z.ArgumentType).ConvertFromString(z.ArgumentValue);
                         }
-                        catch (Exception)
+                        catch(Exception)
                         {
                             throw new InvalidOperationException($"Proxied generator method ({name}) cannot cast to {z.ArgumentType.FullName} for parameter {z.ParameterName}.");
                         }
@@ -82,7 +80,7 @@ namespace AspNetCore.Proxy
 
                     // Make sure to always return a `Task<string>`, but allow methods that just return a `string`.
 
-                    if (method.ReturnType == typeof(Task<string>))
+                    if(method.ReturnType == typeof(Task<string>))
                         return method.Invoke(null, castedArgs.ToArray()) as Task<string>;
 
                     return Task.FromResult(method.Invoke(null, castedArgs.ToArray()) as string);
@@ -100,12 +98,9 @@ namespace AspNetCore.Proxy
         /// <param name="processResponseBody">A lambda to process response body { (responseStream) => Stream }.</param>
         public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null, Func<System.IO.Stream, System.IO.Stream> processResponseBody = null)
         {
-            app.UseRouter(builder =>
-            {
-                builder.MapMiddlewareRoute(endpoint, proxyApp =>
-                {
-                    proxyApp.Run(async context =>
-                    {
+            app.UseRouter(builder => {
+                builder.MapMiddlewareRoute(endpoint, proxyApp => {
+                    proxyApp.Run(async context => {
                         var uri = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
                         await Helpers.HandleProxy(context, uri, onFailure, processResponseBody);
                     });
@@ -158,7 +153,7 @@ namespace AspNetCore.Proxy
             Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => Task.FromResult(getProxiedAddress(context, args));
 
             Func<HttpContext, Exception, Task> of = null;
-            if (onFailure != null)
+            if(onFailure != null)
                 of = (context, e) => { onFailure(context, e); return Task.FromResult(0); };
 
             UseProxy(app, endpoint, gpa, of, processResponseBody);
@@ -177,7 +172,7 @@ namespace AspNetCore.Proxy
             Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => Task.FromResult(getProxiedAddress(args));
 
             Func<HttpContext, Exception, Task> of = null;
-            if (onFailure != null)
+            if(onFailure != null)
                 of = (context, e) => { onFailure(context, e); return Task.FromResult(0); };
 
             UseProxy(app, endpoint, gpa, of, processResponseBody);
@@ -196,7 +191,7 @@ namespace AspNetCore.Proxy
             Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => Task.FromResult(getProxiedAddress());
 
             Func<HttpContext, Exception, Task> of = null;
-            if (onFailure != null)
+            if(onFailure != null)
                 of = (context, e) => { onFailure(context, e); return Task.FromResult(0); };
 
             UseProxy(app, endpoint, gpa, of, processResponseBody);
