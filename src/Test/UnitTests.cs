@@ -247,7 +247,7 @@ namespace AspNetCore.Proxy.Tests
         }
     }
 
-    public class MvcController : Controller
+    public class MvcController : ControllerBase
     {
         [Route("api/controller/posts/{postId}")]
         public Task GetPosts(int postId)
