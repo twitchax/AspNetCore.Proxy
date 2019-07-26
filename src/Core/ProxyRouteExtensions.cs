@@ -27,7 +27,7 @@ namespace AspNetCore.Proxy
         /// A <see cref="Task"/> which, upon completion, has proxied the specified address and copied the response contents into
         /// the response for the <see cref="HttpContext"/>.
         /// </returns>
-        public static Task ProxyAsync(this Controller controller, string uri, Func<HttpContext, Exception, Task> onFailure = null)
+        public static Task ProxyAsync(this ControllerBase controller, string uri, Func<HttpContext, Exception, Task> onFailure = null)
         {
             return Helpers.HandleProxy(controller.HttpContext, uri, onFailure);
         }
