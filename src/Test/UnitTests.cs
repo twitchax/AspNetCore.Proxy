@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
@@ -185,8 +187,9 @@ namespace AspNetCore.Proxy.Tests
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            app.UseProxies();
+            app.UseMiddleware<FakeIpAddressMiddleware>();
             app.UseMvc();
+            app.UseProxies();
 
             app.UseProxy("echo/post", (context, args) => {
                 return Task.FromResult($"https://postman-echo.com/post");
@@ -217,6 +220,24 @@ namespace AspNetCore.Proxy.Tests
             app.UseProxy("api/comments/emptytostring", () => {
                 return $"https://jsonplaceholder.typicode.com/comments/1";
             });
+        }
+    }
+
+    public class FakeIpAddressMiddleware
+    {
+        private readonly RequestDelegate next;
+
+        public FakeIpAddressMiddleware(RequestDelegate next)
+        {
+            this.next = next;
+        }
+
+        public async Task Invoke(HttpContext httpContext)
+        {
+            httpContext.Connection.RemoteIpAddress = IPAddress.Parse("127.168.1.31");;
+            httpContext.Connection.LocalIpAddress = IPAddress.Parse("127.168.1.32");;
+
+            await this.next(httpContext);
         }
     }
 

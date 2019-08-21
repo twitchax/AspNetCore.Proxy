@@ -60,7 +60,12 @@ namespace AspNetCore.Proxy
             var requestMessage = new HttpRequestMessage();
             var requestMethod = request.Method;
 
-            // Write to request conent, when necessary.
+            var localIp = context.Connection.LocalIpAddress?.ToString();
+            var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+            var protocol = context.Request.Scheme;
+            var host = context.Request.Host.ToString();
+
+            // Write to request content, when necessary.
             if (!HttpMethods.IsGet(requestMethod) &&
                 !HttpMethods.IsHead(requestMethod) &&
                 !HttpMethods.IsDelete(requestMethod) &&
@@ -75,6 +80,13 @@ namespace AspNetCore.Proxy
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
 
+            // Add forwarding headers.
+            requestMessage.Headers.Add("X-Forwarded-For", remoteIp);
+            requestMessage.Headers.Add("X-Forwarded-Proto", protocol);
+            requestMessage.Headers.Add("X-Forwarded-Host", host);
+            requestMessage.Headers.Add("Forwarded", $"for={remoteIp};proto={protocol};host={host};by={localIp}");
+
+            // Set destination and method.
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
             requestMessage.Method = new HttpMethod(request.Method);
