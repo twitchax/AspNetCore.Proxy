@@ -1,9 +1,9 @@
-name: build
+name: release
 
 on: [release]
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout!
@@ -14,8 +14,8 @@ jobs:
         dotnet-version: '2.2.401'
     - name: Build package for Release.
       run: dotnet pack -c Release
-      if: github.event == 'release'
+      if: github.event.action == 'published'
     - name: Push package to nuget.
       run: dotnet nuget push **/AspNetCore.Proxy.*.nupkg -k $NUGET_KEY -s https://www.nuget.org/api/v2/package
-      if: github.event == 'release'
+      if: github.event.action == 'published'
       
