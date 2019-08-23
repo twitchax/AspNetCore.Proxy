@@ -1,13 +1,6 @@
-name: CI
+name: build
 
-on:
-  release: {}
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+on: [push, pull_request]
 
 jobs:
   build:
@@ -21,10 +14,4 @@ jobs:
         dotnet-version: '2.2.401'
     - name: Build and run tests.
       run: dotnet test
-    - name: Build package for Release.
-      run: dotnet pack -c Release
-      if: github.event == 'release'
-    - name: Push package to nuget.
-      run: dotnet nuget push **/AspNetCore.Proxy.*.nupkg -k $NUGET_KEY -s https://www.nuget.org/api/v2/package
-      if: github.event == 'release' 
     
