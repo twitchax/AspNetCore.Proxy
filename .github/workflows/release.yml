@@ -1,0 +1,21 @@
+name: build
+
+on: [release]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout!
+      uses: actions/checkout@v1
+    - name: Setup .NET Environment.
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '2.2.401'
+    - name: Build package for Release.
+      run: dotnet pack -c Release
+      if: github.event == 'release'
+    - name: Push package to nuget.
+      run: dotnet nuget push **/AspNetCore.Proxy.*.nupkg -k $NUGET_KEY -s https://www.nuget.org/api/v2/package
+      if: github.event == 'release'
+      
