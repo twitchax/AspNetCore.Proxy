@@ -1,4 +1,4 @@
-[![GitHub Actions Status](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/badge/twitchax/aspnetcore.proxy)](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/results/twitchax/aspnetcore.proxy)
+[![Actions Status](https://github.com/twitchax/AspNetCore.Proxy/workflows/CI/badge.svg)](https://github.com/twitchax/AspNetCore.Proxy/actions)
 [![GitHub Release](https://img.shields.io/github/release/twitchax/aspnetcore.proxy.svg)](https://github.com/twitchax/aspnetcore.proxy/releases)
 [![NuGet Version](https://img.shields.io/nuget/v/aspnetcore.proxy.svg)](https://www.nuget.org/packages/aspnetcore.proxy/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/aspnetcore.proxy.svg)](https://www.nuget.org/packages/aspnetcore.proxy/)
