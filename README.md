@@ -73,7 +73,7 @@ public class MyController : Controller
             })
             .WithAfterReceive((c, hrm) =>
             {
-                // Alter the conent in  some way before sending back to client.
+                // Alter the content in  some way before sending back to client.
                 var newContent = new StringContent("It's all greek...er, Latin...to me!");
                 hrm.Content = newContent;
             })
