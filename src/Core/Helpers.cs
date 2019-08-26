@@ -28,31 +28,36 @@ namespace AspNetCore.Proxy
             return assemblies;
         }
 
-        internal static async Task HandleProxy(HttpContext context, string uri, Func<HttpContext, Exception, Task> onFailure = null)
+        internal static async Task ExecuteProxyOperation(HttpContext context, string uri, ProxyOptions options = null)
         {
             try
             {
-                var proxiedResponse = await context.SendProxyHttpRequest(uri).ConfigureAwait(false);
-                await context.CopyProxyHttpResponse(proxiedResponse).ConfigureAwait(false);
+                var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
+
+                options?.BeforeSend?.Invoke(context, proxiedRequest);
+                var proxiedResponse = await context.SendProxiedHttpRequest(proxiedRequest).ConfigureAwait(false);
+
+                options?.AfterReceive?.Invoke(context, proxiedResponse);
+                await context.WriteProxiedHttpResponse(proxiedResponse).ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                if (onFailure == null)
+                if (options?.HandleFailure == null)
                 {
                     // If the failures are not caught, then write a generic response.
-                    context.Response.StatusCode = 500;
+                    context.Response.StatusCode = 502;
                     await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.").ConfigureAwait(false);
                     return;
                 }
 
-                await onFailure(context, e).ConfigureAwait(false);
+                options?.HandleFailure?.Invoke(context, e);
             }
         }
     }
 
     internal static class Extensions
     {
-        private static HttpRequestMessage CreateProxyHttpRequest(this HttpContext context, string uriString)
+        internal static HttpRequestMessage CreateProxiedHttpRequest(this HttpContext context, string uriString, bool shouldAddForwardedHeaders)
         {
             var uri = new Uri(uriString);
             var request = context.Request;
@@ -80,11 +85,14 @@ namespace AspNetCore.Proxy
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
 
-            // Add forwarding headers.
-            requestMessage.Headers.Add("X-Forwarded-For", remoteIp);
-            requestMessage.Headers.Add("X-Forwarded-Proto", protocol);
-            requestMessage.Headers.Add("X-Forwarded-Host", host);
-            requestMessage.Headers.Add("Forwarded", $"for={remoteIp};proto={protocol};host={host};by={localIp}");
+            // Add forwarded headers.
+            if(shouldAddForwardedHeaders)
+            {
+                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-For", remoteIp);
+                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-Proto", protocol);
+                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-Host", host);
+                requestMessage.Headers.TryAddWithoutValidation("Forwarded", $"for={remoteIp};proto={protocol};host={host};by={localIp}");
+            }
 
             // Set destination and method.
             requestMessage.Headers.Host = uri.Authority;
@@ -94,17 +102,15 @@ namespace AspNetCore.Proxy
             return requestMessage;
         }
 
-        internal static Task<HttpResponseMessage> SendProxyHttpRequest(this HttpContext context, string proxiedAddress)
+        internal static Task<HttpResponseMessage> SendProxiedHttpRequest(this HttpContext context, HttpRequestMessage message)
         {
-            var proxiedRequest = context.CreateProxyHttpRequest(proxiedAddress);
-
             return context.RequestServices
                 .GetService<IHttpClientFactory>()
                 .CreateClient()
-                .SendAsync(proxiedRequest, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+                .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 
-        internal static async Task CopyProxyHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
+        internal static async Task WriteProxiedHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
         {
             var response = context.Response;
 
@@ -120,7 +126,7 @@ namespace AspNetCore.Proxy
             }
 
             response.Headers.Remove("transfer-encoding");
-
+            
             using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
             {
                 await responseStream.CopyToAsync(response.Body, 81920, context.RequestAborted).ConfigureAwait(false);

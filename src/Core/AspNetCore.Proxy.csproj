@@ -1,15 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Version>2.1.2</Version>
     <AssemblyName>AspNetCore.Proxy</AssemblyName>
     <PackageId>AspNetCore.Proxy</PackageId>
-    <DocumentationFile>bin\AspNetCore.Proxy.xml</DocumentationFile>
+    <Version>3.0.0</Version>
+    <PackageProjectUrl>https://github.com/twitchax/aspnetcore.proxy</PackageProjectUrl>
+
     <TargetFramework>netstandard2.0</TargetFramework>
+    <IsTestProject>false</IsTestProject>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="2.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="2.2.0" />
   </ItemGroup>
+
 </Project>

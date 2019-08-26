@@ -56,6 +56,39 @@ public class MyController : Controller
 }
 ```
 
+You can also pass special options that apply when the proxy operation occurs.
+
+```csharp
+public class MyController : Controller
+{
+    [Route("api/posts/{postId}")]
+    public Task GetPosts(int postId)
+    {
+        var options = ProxyOptions.Instance
+            .WithShouldAddForwardedHeaders(false)
+            .WithBeforeSend((c, hrm) =>
+            {
+                // Set something that is needed for the downstream endpoint.
+                hrm.Headers.Authorization = new AuthenticationHeaderValue("Basic");
+            })
+            .WithAfterReceive((c, hrm) =>
+            {
+                // Alter the conent in  some way before sending back to client.
+                var newContent = new StringContent("It's all greek...er, Latin...to me!");
+                hrm.Content = newContent;
+            })
+            .WithHandleFailure((c, e) =>
+            {
+                // Return a custom error response.
+                c.Response.StatusCode = 403;
+                c.Response.WriteAsync("Things borked.");
+            });
+
+        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+    }
+}
+```
+
 #### Application Builder
 
 You can define a proxy in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
