@@ -193,17 +193,26 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task CanModifyBadResponse()
+        {
+            var response = await _client.GetAsync("api/controller/badresponse/1");
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            
+            Assert.Equal("I tried to proxy, but I chose a bad address, and it is not found.", await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task CanGetGeneric502OnFailure()
         {
             var response = await _client.GetAsync("api/controller/fail/1");
-            Assert.Equal("BadGateway", response.StatusCode.ToString());
+            Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
         }
 
         [Fact]
         public async Task CanGetCustomFailure()
         {
             var response = await _client.GetAsync("api/controller/customfail/1");
-            Assert.Equal("Forbidden", response.StatusCode.ToString());
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
             Assert.Equal("Things borked.", await response.Content.ReadAsStringAsync());
         }
     }
@@ -331,6 +340,22 @@ namespace AspNetCore.Proxy.Tests
                 });
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        }
+
+        [Route("api/controller/badresponse/{postId}")]
+        public Task GetWithBadResponse(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithAfterReceive((c, hrm) =>
+                {
+                    if(hrm.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        var newContent = new StringContent("I tried to proxy, but I chose a bad address, and it is not found.");
+                        hrm.Content = newContent;
+                    }
+                });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/badpath/{postId}", options);
         }
 
         [Route("api/controller/fail/{postId}")]

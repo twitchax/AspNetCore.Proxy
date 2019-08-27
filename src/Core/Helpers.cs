@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace AspNetCore.Proxy
@@ -65,11 +67,6 @@ namespace AspNetCore.Proxy
             var requestMessage = new HttpRequestMessage();
             var requestMethod = request.Method;
 
-            var localIp = context.Connection.LocalIpAddress?.ToString();
-            var remoteIp = context.Connection.RemoteIpAddress?.ToString();
-            var protocol = context.Request.Scheme;
-            var host = context.Request.Host.ToString();
-
             // Write to request content, when necessary.
             if (!HttpMethods.IsGet(requestMethod) &&
                 !HttpMethods.IsHead(requestMethod) &&
@@ -87,12 +84,7 @@ namespace AspNetCore.Proxy
 
             // Add forwarded headers.
             if(shouldAddForwardedHeaders)
-            {
-                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-For", remoteIp);
-                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-Proto", protocol);
-                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-Host", host);
-                requestMessage.Headers.TryAddWithoutValidation("Forwarded", $"for={remoteIp};proto={protocol};host={host};by={localIp}");
-            }
+                AddForwardedHeadersToRequest(context, requestMessage);
 
             // Set destination and method.
             requestMessage.Headers.Host = uri.Authority;
@@ -131,6 +123,47 @@ namespace AspNetCore.Proxy
             {
                 await responseStream.CopyToAsync(response.Body, 81920, context.RequestAborted).ConfigureAwait(false);
             }
+        }
+
+        private static void AddForwardedHeadersToRequest(HttpContext context, HttpRequestMessage requestMessage)
+        {
+            var request = context.Request;
+            var connection = context.Connection;
+
+            var host = request.Host.ToString();
+            var protocol = request.Scheme;
+
+            var localIp = connection.LocalIpAddress?.ToString();
+            var isLocalIpV6 = connection.LocalIpAddress?.AddressFamily == AddressFamily.InterNetworkV6;
+
+            var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+            var isRemoteIpV6 = connection.RemoteIpAddress?.AddressFamily == AddressFamily.InterNetworkV6;
+
+            if(remoteIp != null)
+                requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-For", remoteIp);
+            requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-Proto", protocol);
+            requestMessage.Headers.TryAddWithoutValidation("X-Forwarded-Host", host);
+
+            // Fix IPv6 IPs for the `Forwarded` header.
+            var forwardedHeader = new StringBuilder($"proto={protocol};host={host};");
+
+            if(localIp != null)
+            {
+                if(isLocalIpV6)
+                    localIp = $"\"[{localIp}]\"";
+
+                forwardedHeader.Append($"by={localIp};");
+            }
+
+            if(remoteIp != null)
+            {
+                if(isRemoteIpV6)
+                    remoteIp = $"\"[{remoteIp}]\"";
+
+                forwardedHeader.Append($"for={remoteIp};");
+            }
+
+            requestMessage.Headers.TryAddWithoutValidation("Forwarded", forwardedHeader.ToString());
         }
     }
 }
