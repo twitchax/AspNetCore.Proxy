@@ -1,4 +1,3 @@
-
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -23,26 +22,26 @@ namespace AspNetCore.Proxy
         /// <summary>
         /// HandleFailure property.
         /// </summary>
-        /// <value>An <see cref="Action"/> that is invoked once if the proxy operation fails.</value>
-        public Action<HttpContext, Exception> HandleFailure { get; set; }
+        /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
+        public Func<HttpContext, Exception, Task> HandleFailure { get; set; }
 
         /// <summary>
         /// BeforeSend property.
         /// </summary>
         /// <value>
-        /// An <see cref="Action"/> that is invoked before the call to the remote endpoint.
+        /// An <see cref="Func{HttpContext, HttpRequestMessage, Task}"/> that is invoked before the call to the remote endpoint.
         /// The <see cref="HttpRequestMessage"/> can be edited before the call.
         /// </value>
-        public Action<HttpContext, HttpRequestMessage> BeforeSend { get; set; }
+        public Func<HttpContext, HttpRequestMessage, Task> BeforeSend { get; set; }
 
         /// <summary>
         /// AfterReceive property.
         /// </summary>
         /// <value>
-        /// An <see cref="Action"/> that is invoked before the response is written to the client.
+        /// An <see cref="Func{HttpContext, HttpResponseMessage, Task}"/> that is invoked before the response is written to the client.
         /// The <see cref="HttpResponseMessage"/> can be edited before the response is written to the client.
         /// </value>
-        public Action<HttpContext, HttpResponseMessage> AfterReceive { get; set; }
+        public Func<HttpContext, HttpResponseMessage, Task> AfterReceive { get; set; }
         
         /// <summary>
         /// The default constructor.
@@ -51,9 +50,9 @@ namespace AspNetCore.Proxy
 
         private ProxyOptions(
             bool shouldAddForwardedHeaders,
-            Action<HttpContext, Exception> handleFailure,
-            Action<HttpContext, HttpRequestMessage> beforeSend,
-            Action<HttpContext, HttpResponseMessage> afterReceive)
+            Func<HttpContext, Exception, Task> handleFailure,
+            Func<HttpContext, HttpRequestMessage, Task> beforeSend,
+            Func<HttpContext, HttpResponseMessage, Task> afterReceive)
         {
             ShouldAddForwardedHeaders = shouldAddForwardedHeaders;
             HandleFailure = handleFailure;
@@ -64,9 +63,9 @@ namespace AspNetCore.Proxy
         private static ProxyOptions CreateFrom(
             ProxyOptions old, 
             bool? shouldAddForwardedHeaders = null,
-            Action<HttpContext, Exception> handleFailure = null,
-            Action<HttpContext, HttpRequestMessage> beforeSend = null,
-            Action<HttpContext, HttpResponseMessage> afterReceive = null)
+            Func<HttpContext, Exception, Task> handleFailure = null,
+            Func<HttpContext, HttpRequestMessage, Task> beforeSend = null,
+            Func<HttpContext, HttpResponseMessage, Task> afterReceive = null)
         {
             return new ProxyOptions(
                 shouldAddForwardedHeaders ?? old.ShouldAddForwardedHeaders,
@@ -93,20 +92,20 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="handleFailure"></param>
         /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
-        public ProxyOptions WithHandleFailure(Action<HttpContext, Exception> handleFailure) => CreateFrom(this, handleFailure: handleFailure);
+        public ProxyOptions WithHandleFailure(Func<HttpContext, Exception, Task> handleFailure) => CreateFrom(this, handleFailure: handleFailure);
 
         /// <summary>
         /// Sets the <see cref="BeforeSend"/> property to a cloned instance of this <see cref="ProxyOptions"/>.
         /// </summary>
         /// <param name="beforeSend"></param>
         /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
-        public ProxyOptions WithBeforeSend(Action<HttpContext, HttpRequestMessage> beforeSend) => CreateFrom(this, beforeSend: beforeSend);
+        public ProxyOptions WithBeforeSend(Func<HttpContext, HttpRequestMessage, Task> beforeSend) => CreateFrom(this, beforeSend: beforeSend);
 
         /// <summary>
         /// Sets the <see cref="AfterReceive"/> property to a cloned instance of this <see cref="ProxyOptions"/>.
         /// </summary>
         /// <param name="afterReceive"></param>
         /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
-        public ProxyOptions WithAfterReceive(Action<HttpContext, HttpResponseMessage> afterReceive) => CreateFrom(this, afterReceive: afterReceive);
+        public ProxyOptions WithAfterReceive(Func<HttpContext, HttpResponseMessage, Task> afterReceive) => CreateFrom(this, afterReceive: afterReceive);
     }
 }

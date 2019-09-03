@@ -36,10 +36,12 @@ namespace AspNetCore.Proxy
             {
                 var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
 
-                options?.BeforeSend?.Invoke(context, proxiedRequest);
+                if(options?.BeforeSend != null)
+                    await options.BeforeSend(context, proxiedRequest).ConfigureAwait(false);
                 var proxiedResponse = await context.SendProxiedHttpRequest(proxiedRequest).ConfigureAwait(false);
 
-                options?.AfterReceive?.Invoke(context, proxiedResponse);
+                if(options?.AfterReceive != null)
+                    await options.AfterReceive(context, proxiedResponse).ConfigureAwait(false);
                 await context.WriteProxiedHttpResponse(proxiedResponse).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -52,7 +54,7 @@ namespace AspNetCore.Proxy
                     return;
                 }
 
-                options?.HandleFailure?.Invoke(context, e);
+                await options.HandleFailure(context, e).ConfigureAwait(false);
             }
         }
     }

@@ -324,6 +324,7 @@ namespace AspNetCore.Proxy.Tests
                 .WithBeforeSend((c, hrm) =>
                 {
                     hrm.RequestUri = new Uri("https://jsonplaceholder.typicode.com/posts/2");
+                    return Task.CompletedTask;
                 });
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
@@ -337,6 +338,7 @@ namespace AspNetCore.Proxy.Tests
                 {
                     var newContent = new StringContent("It's all greek...er, Latin...to me!");
                     hrm.Content = newContent;
+                    return Task.CompletedTask;
                 });
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
@@ -353,6 +355,8 @@ namespace AspNetCore.Proxy.Tests
                         var newContent = new StringContent("I tried to proxy, but I chose a bad address, and it is not found.");
                         hrm.Content = newContent;
                     }
+
+                    return Task.CompletedTask;
                 });
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/badpath/{postId}", options);
@@ -365,6 +369,7 @@ namespace AspNetCore.Proxy.Tests
             {
                 var a = 0;
                 var b = 1 / a;
+                return Task.CompletedTask;
             });
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
@@ -377,11 +382,12 @@ namespace AspNetCore.Proxy.Tests
                 {
                     var a = 0;
                     var b = 1 / a;
+                    return Task.CompletedTask;
                 })
                 .WithHandleFailure((c, e) =>
                 {
                     c.Response.StatusCode = 403;
-                    c.Response.WriteAsync("Things borked.");
+                    return c.Response.WriteAsync("Things borked.");
                 });
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
