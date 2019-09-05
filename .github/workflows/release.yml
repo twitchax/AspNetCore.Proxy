@@ -16,6 +16,8 @@ jobs:
       run: dotnet pack -c Release
       if: github.event.action == 'published'
     - name: Push package to nuget.
+      env:
+        NUGET_KEY: ${{ secrets.NUGET_KEY }}
       run: dotnet nuget push **/AspNetCore.Proxy.*.nupkg -k $NUGET_KEY -s https://www.nuget.org/api/v2/package
       if: github.event.action == 'published'
       
