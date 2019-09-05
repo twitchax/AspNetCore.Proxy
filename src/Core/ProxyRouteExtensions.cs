@@ -22,14 +22,14 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="controller">The calling controller.</param>
         /// <param name="uri">The URI to proxy.</param>
-        /// <param name="onFailure">A failure handler (otherwise, failures result in a generic 500).</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
         /// <returns>
         /// A <see cref="Task"/> which, upon completion, has proxied the specified address and copied the response contents into
         /// the response for the <see cref="HttpContext"/>.
         /// </returns>
-        public static Task ProxyAsync(this ControllerBase controller, string uri, Func<HttpContext, Exception, Task> onFailure = null)
+        public static Task ProxyAsync(this ControllerBase controller, string uri, ProxyOptions options = null)
         {
-            return Helpers.HandleProxy(controller.HttpContext, uri, onFailure);
+            return Helpers.ExecuteProxyOperation(controller.HttpContext, uri, options);
         }
 
         /// <summary>
@@ -92,18 +92,15 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
         /// <param name="endpoint">The local route endpoint.</param>
-        /// <param name="getProxiedAddress">A lambda { (context, args) => Task[string] } which returns the address to which the request is proxied.</param>
-        /// <param name="onFailure">A lambda to handle proxy failures { (context, exception) => Task }.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null)
+        /// <param name="getProxiedAddress">A lambda { (context, args) => <see cref="Task{String}"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, Task<string>> getProxiedAddress, ProxyOptions options = null)
         {
-            app.UseRouter(builder => {
-                builder.MapMiddlewareRoute(endpoint, proxyApp => {
-                    proxyApp.Run(async context => {
-                        var uri = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
-                        await Helpers.HandleProxy(context, uri, onFailure);
-                    });
-                });
-            });
+            UseProxy_GpaAsync(
+                app, 
+                endpoint, 
+                (context, args) => getProxiedAddress(context, args), 
+                options);
         }
 
         #region UseProxy Overloads
@@ -113,13 +110,15 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
         /// <param name="endpoint">The local route endpoint.</param>
-        /// <param name="getProxiedAddress">A lambda { (args) => Task[string] } which returns the address to which the request is proxied.</param>
-        /// <param name="onFailure">A lambda to handle proxy failures { (context, exception) => Task }.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<IDictionary<string, object>, Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null)
+        /// <param name="getProxiedAddress">A lambda { (args) => <see cref="Task{String}"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<IDictionary<string, object>, Task<string>> getProxiedAddress, ProxyOptions options = null)
         {
-            Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => getProxiedAddress(args);
-
-            UseProxy(app, endpoint, gpa, onFailure);
+            UseProxy_GpaAsync(
+                app, 
+                endpoint, 
+                (context, args) => getProxiedAddress(args), 
+                options);
         }
 
         /// <summary>
@@ -127,13 +126,15 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
         /// <param name="endpoint">The local route endpoint.</param>
-        /// <param name="getProxiedAddress">A lambda { () => Task[string] } which returns the address to which the request is proxied.</param>
-        /// <param name="onFailure">A lambda to handle proxy failures { (context, exception) => Task }.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<Task<string>> getProxiedAddress, Func<HttpContext, Exception, Task> onFailure = null)
+        /// <param name="getProxiedAddress">A lambda { () => <see cref="Task{String}"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<Task<string>> getProxiedAddress, ProxyOptions options = null)
         {
-            Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => getProxiedAddress();
-
-            UseProxy(app, endpoint, gpa, onFailure);
+            UseProxy_GpaAsync(
+                app, 
+                endpoint, 
+                (context, args) => getProxiedAddress(), 
+                options);
         }
 
         /// <summary>
@@ -141,17 +142,15 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
         /// <param name="endpoint">The local route endpoint.</param>
-        /// <param name="getProxiedAddress">A lambda { (context, args) => string } which returns the address to which the request is proxied.</param>
-        /// <param name="onFailure">A lambda to handle proxy failures { (context, exception) => void }.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, string> getProxiedAddress, Action<HttpContext, Exception> onFailure = null)
+        /// <param name="getProxiedAddress">A lambda { (context, args) => <see cref="string"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, string> getProxiedAddress, ProxyOptions options = null)
         {
-            Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => Task.FromResult(getProxiedAddress(context, args));
-
-            Func<HttpContext, Exception, Task> of = null;
-            if(onFailure != null)
-                of = (context, e) => { onFailure(context, e); return Task.FromResult(0); };
-
-            UseProxy(app, endpoint, gpa, of);
+            UseProxy_GpaSync(
+                app, 
+                endpoint, 
+                (context, args) => getProxiedAddress(context, args), 
+                options);
         }
 
         /// <summary>
@@ -159,17 +158,15 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
         /// <param name="endpoint">The local route endpoint.</param>
-        /// <param name="getProxiedAddress">A lambda { (args) => string } which returns the address to which the request is proxied.</param>
-        /// <param name="onFailure">A lambda to handle proxy failures { (context, exception) => void }.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<IDictionary<string, object>, string> getProxiedAddress, Action<HttpContext, Exception> onFailure = null)
+        /// <param name="getProxiedAddress">A lambda { (args) => <see cref="string"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<IDictionary<string, object>, string> getProxiedAddress, ProxyOptions options = null)
         {
-            Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => Task.FromResult(getProxiedAddress(args));
-
-            Func<HttpContext, Exception, Task> of = null;
-            if(onFailure != null)
-                of = (context, e) => { onFailure(context, e); return Task.FromResult(0); };
-
-            UseProxy(app, endpoint, gpa, of);
+            UseProxy_GpaSync(
+                app, 
+                endpoint, 
+                (context, args) => getProxiedAddress(args), 
+                options);
         }
 
         /// <summary>
@@ -177,17 +174,41 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
         /// <param name="endpoint">The local route endpoint.</param>
-        /// <param name="getProxiedAddress">A lambda { () => string } which returns the address to which the request is proxied.</param>
-        /// <param name="onFailure">A lambda to handle proxy failures { (context, exception) => void }.</param>
-        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<string> getProxiedAddress, Action<HttpContext, Exception> onFailure = null)
+        /// <param name="getProxiedAddress">A lambda { () => <see cref="string"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, Func<string> getProxiedAddress, ProxyOptions options = null)
         {
-            Func<HttpContext, IDictionary<string, object>, Task<string>> gpa = (context, args) => Task.FromResult(getProxiedAddress());
+            UseProxy_GpaSync(
+                app, 
+                endpoint, 
+                (context, args) => getProxiedAddress(), 
+                options);
+        }
 
-            Func<HttpContext, Exception, Task> of = null;
-            if(onFailure != null)
-                of = (context, e) => { onFailure(context, e); return Task.FromResult(0); };
+        // Provides the "default" implementation for `UseProxy` where the proxied address is computed asynchronously.
+        private static void UseProxy_GpaAsync(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, Task<string>> getProxiedAddress, ProxyOptions options = null)
+        {
+            app.UseRouter(builder => {
+                builder.MapMiddlewareRoute(endpoint, proxyApp => {
+                    proxyApp.Run(async context => {
+                        var uri = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
+                        await Helpers.ExecuteProxyOperation(context, uri, options);
+                    });
+                });
+            });
+        }
 
-            UseProxy(app, endpoint, gpa, of);
+        // Provides the "default" implementation for `UseProxy` where the proxied address is computed synchronously.
+        private static void UseProxy_GpaSync(this IApplicationBuilder app, string endpoint, Func<HttpContext, IDictionary<string, object>, string> getProxiedAddress, ProxyOptions options = null)
+        {
+            app.UseRouter(builder => {
+                builder.MapMiddlewareRoute(endpoint, proxyApp => {
+                    proxyApp.Run(async context => {
+                        var uri = getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value));
+                        await Helpers.ExecuteProxyOperation(context, uri, options);
+                    });
+                });
+            });
         }
 
         #endregion

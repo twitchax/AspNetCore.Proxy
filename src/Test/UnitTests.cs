@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -28,7 +28,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyAttributeToTask()
+        public async Task CanProxyAttributeToTask()
         {
             var response = await _client.GetAsync("api/posts/totask/1");
             response.EnsureSuccessStatusCode();
@@ -38,7 +38,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyAttributeToString()
+        public async Task CanProxyAttributeToString()
         {
             var response = await _client.GetAsync("api/posts/tostring/1");
             response.EnsureSuccessStatusCode();
@@ -48,7 +48,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyAttributePostRequest()
+        public async Task CanProxyAttributePostRequest()
         {
             var content = new StringContent("{\"title\": \"foo\", \"body\": \"bar\", \"userId\": 1}", Encoding.UTF8, "application/json");
             var response = await _client.PostAsync("api/posts", content);
@@ -60,7 +60,7 @@ namespace AspNetCore.Proxy.Tests
 
 
         [Fact]
-        public async Task ProxyContentHeadersPostRequest()
+        public async Task CanProxyContentHeadersPostRequest()
         {
             var content = "hello world";
             var contentType = "application/xcustom";
@@ -79,7 +79,7 @@ namespace AspNetCore.Proxy.Tests
 
 
         [Fact]
-        public async Task ProxyAttributePostWithFormRequest()
+        public async Task CanProxyAttributePostWithFormRequest()
         {
             var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "xyz", "123" }, { "abc", "321" } });
             var response = await _client.PostAsync("api/posts", content);
@@ -94,7 +94,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyAttributeCatchAll()
+        public async Task CanProxyAttributeCatchAll()
         {
             var response = await _client.GetAsync("api/catchall/posts/1");
             response.EnsureSuccessStatusCode();
@@ -104,7 +104,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddlewareWithContextAndArgsToTask()
+        public async Task CanProxyMiddlewareWithContextAndArgsToTask()
         {
             var response = await _client.GetAsync("api/comments/contextandargstotask/1");
             response.EnsureSuccessStatusCode();
@@ -114,7 +114,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddlewareWithArgsToTask()
+        public async Task CanProxyMiddlewareWithArgsToTask()
         {
             var response = await _client.GetAsync("api/comments/argstotask/1");
             response.EnsureSuccessStatusCode();
@@ -124,7 +124,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddlewareWithEmptyToTask()
+        public async Task CanProxyMiddlewareWithEmptyToTask()
         {
             var response = await _client.GetAsync("api/comments/emptytotask");
             response.EnsureSuccessStatusCode();
@@ -134,7 +134,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddlewareWithContextAndArgsToString()
+        public async Task CanProxyMiddlewareWithContextAndArgsToString()
         {
             var response = await _client.GetAsync("api/comments/contextandargstostring/1");
             response.EnsureSuccessStatusCode();
@@ -144,7 +144,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddlewareWithArgsToString()
+        public async Task CanProxyMiddlewareWithArgsToString()
         {
             var response = await _client.GetAsync("api/comments/argstostring/1");
             response.EnsureSuccessStatusCode();
@@ -154,7 +154,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyMiddlewareWithEmptyToString()
+        public async Task CanProxyMiddlewareWithEmptyToString()
         {
             var response = await _client.GetAsync("api/comments/emptytostring");
             response.EnsureSuccessStatusCode();
@@ -164,13 +164,56 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task ProxyController()
+        public async Task CanProxyWithController()
         {
             var response = await _client.GetAsync("api/controller/posts/1");
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
             Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
+        }
+
+        [Fact]
+        public async Task CanModifyRequest()
+        {
+            var response = await _client.GetAsync("api/controller/customrequest/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("qui est esse", JObject.Parse(responseString).Value<string>("title"));
+        }
+
+        [Fact]
+        public async Task CanModifyResponse()
+        {
+            var response = await _client.GetAsync("api/controller/customresponse/1");
+            response.EnsureSuccessStatusCode();
+            
+            Assert.Equal("It's all greek...er, Latin...to me!", await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task CanModifyBadResponse()
+        {
+            var response = await _client.GetAsync("api/controller/badresponse/1");
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            
+            Assert.Equal("I tried to proxy, but I chose a bad address, and it is not found.", await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task CanGetGeneric502OnFailure()
+        {
+            var response = await _client.GetAsync("api/controller/fail/1");
+            Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CanGetCustomFailure()
+        {
+            var response = await _client.GetAsync("api/controller/customfail/1");
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            Assert.Equal("Things borked.", await response.Content.ReadAsStringAsync());
         }
     }
 
@@ -185,8 +228,9 @@ namespace AspNetCore.Proxy.Tests
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            app.UseProxies();
+            app.UseMiddleware<FakeIpAddressMiddleware>();
             app.UseMvc();
+            app.UseProxies();
 
             app.UseProxy("echo/post", (context, args) => {
                 return Task.FromResult($"https://postman-echo.com/post");
@@ -217,6 +261,24 @@ namespace AspNetCore.Proxy.Tests
             app.UseProxy("api/comments/emptytostring", () => {
                 return $"https://jsonplaceholder.typicode.com/comments/1";
             });
+        }
+    }
+
+    public class FakeIpAddressMiddleware
+    {
+        private readonly RequestDelegate next;
+
+        public FakeIpAddressMiddleware(RequestDelegate next)
+        {
+            this.next = next;
+        }
+
+        public async Task Invoke(HttpContext httpContext)
+        {
+            httpContext.Connection.RemoteIpAddress = IPAddress.Parse("127.168.1.31");;
+            httpContext.Connection.LocalIpAddress = IPAddress.Parse("127.168.1.32");;
+
+            await this.next(httpContext);
         }
     }
 
@@ -253,6 +315,82 @@ namespace AspNetCore.Proxy.Tests
         public Task GetPosts(int postId)
         {
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+        }
+
+        [Route("api/controller/customrequest/{postId}")]
+        public Task GetWithCustomRequest(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithBeforeSend((c, hrm) =>
+                {
+                    hrm.RequestUri = new Uri("https://jsonplaceholder.typicode.com/posts/2");
+                    return Task.CompletedTask;
+                });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        }
+
+        [Route("api/controller/customresponse/{postId}")]
+        public Task GetWithCustomResponse(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithAfterReceive((c, hrm) =>
+                {
+                    var newContent = new StringContent("It's all greek...er, Latin...to me!");
+                    hrm.Content = newContent;
+                    return Task.CompletedTask;
+                });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        }
+
+        [Route("api/controller/badresponse/{postId}")]
+        public Task GetWithBadResponse(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithAfterReceive((c, hrm) =>
+                {
+                    if(hrm.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        var newContent = new StringContent("I tried to proxy, but I chose a bad address, and it is not found.");
+                        hrm.Content = newContent;
+                    }
+
+                    return Task.CompletedTask;
+                });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/badpath/{postId}", options);
+        }
+
+        [Route("api/controller/fail/{postId}")]
+        public Task GetWithGenericFail(int postId)
+        {
+            var options = ProxyOptions.Instance.WithBeforeSend((c, hrm) =>
+            {
+                var a = 0;
+                var b = 1 / a;
+                return Task.CompletedTask;
+            });
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        }
+
+        [Route("api/controller/customfail/{postId}")]
+        public Task GetWithCustomFail(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithBeforeSend((c, hrm) =>
+                {
+                    var a = 0;
+                    var b = 1 / a;
+                    return Task.CompletedTask;
+                })
+                .WithHandleFailure((c, e) =>
+                {
+                    c.Response.StatusCode = 403;
+                    return c.Response.WriteAsync("Things borked.");
+                });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
     }
 }
