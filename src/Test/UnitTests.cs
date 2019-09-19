@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -214,6 +215,17 @@ namespace AspNetCore.Proxy.Tests
             var response = await _client.GetAsync("api/controller/customfail/1");
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
             Assert.Equal("Things borked.", await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task CanProxyConcurrentCalls()
+        {
+            var calls = Enumerable.Range(1, 1000).Select(i =>
+            {
+                return _server.CreateClient().GetAsync($"api/controller/posts/1");
+            });
+
+            Assert.True((await Task.WhenAll(calls)).All(r => r.IsSuccessStatusCode));
         }
     }
 
