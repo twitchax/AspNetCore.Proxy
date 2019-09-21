@@ -52,7 +52,7 @@ namespace AspNetCore.Proxy
 
             foreach(var method in methods)
             {
-                var name = method.Name;
+                var name = $"{method.DeclaringType}.{method.Name}";
                 var attribute = method.GetCustomAttributes(typeof(ProxyRouteAttribute), false).First() as ProxyRouteAttribute;
                 var parameters = method.GetParameters();
 
