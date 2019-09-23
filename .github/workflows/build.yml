@@ -18,8 +18,10 @@ jobs:
       run: mkdir -p artifacts
     - name: Copy artifacts.
       run: |
-        find . -type f -name AspNetCore.Proxy.*.nupkg -exec cp '{}' ./artifacts/package.nupkg ';'
-        find . -type f -name coverage.*.xml -exec cp '{}' ./artifacts/coverage.xml ';'
+        find . -type f -name AspNetCore.Proxy.dll -exec cp '{}' ./artifacts/. ';'
+        find . -type f -name AspNetCore.Proxy.pdb -exec cp '{}' ./artifacts/. ';'
+        find . -type f -name AspNetCore.Proxy.xml -exec cp '{}' ./artifacts/. ';'
+        find . -type f -name coverage.cobertura.xml -exec cp '{}' ./artifacts/. ';'
     - name: Upload artifacts.
       uses: actions/upload-artifact@master
       with:
