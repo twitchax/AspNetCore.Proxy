@@ -13,5 +13,15 @@ jobs:
       with:
         dotnet-version: '2.2.401'
     - name: Build and run tests.
-      run: dotnet test
+      run: dotnet test --collect:"XPlat Code Coverage"
+    - name: Upload coverage.
+      uses: actions/upload-artifact@master
+      with:
+        name: coverage.xml
+        path: '**/coverage.*.xml'
+    - name: Upload package.
+      uses: actions/upload-artifact@master
+      with:
+        name: package.nupkg
+        path: '**/AspNetCore.Proxy.*.nupkg'
     
