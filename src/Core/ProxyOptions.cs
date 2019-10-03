@@ -59,11 +59,13 @@ namespace AspNetCore.Proxy
 
         private ProxyOptions(
             bool shouldAddForwardedHeaders,
+            string httpClientName,
             Func<HttpContext, Exception, Task> handleFailure,
             Func<HttpContext, HttpRequestMessage, Task> beforeSend,
             Func<HttpContext, HttpResponseMessage, Task> afterReceive)
         {
             ShouldAddForwardedHeaders = shouldAddForwardedHeaders;
+            HttpClientName = httpClientName;
             HandleFailure = handleFailure;
             BeforeSend = beforeSend;
             AfterReceive = afterReceive;
@@ -72,12 +74,14 @@ namespace AspNetCore.Proxy
         private static ProxyOptions CreateFrom(
             ProxyOptions old, 
             bool? shouldAddForwardedHeaders = null,
+            string httpClientName = null,
             Func<HttpContext, Exception, Task> handleFailure = null,
             Func<HttpContext, HttpRequestMessage, Task> beforeSend = null,
             Func<HttpContext, HttpResponseMessage, Task> afterReceive = null)
         {
             return new ProxyOptions(
                 shouldAddForwardedHeaders ?? old.ShouldAddForwardedHeaders,
+                httpClientName ?? old.HttpClientName,
                 handleFailure ?? old.HandleFailure,
                 beforeSend ?? old.BeforeSend,
                 afterReceive ?? old.AfterReceive);
@@ -95,6 +99,13 @@ namespace AspNetCore.Proxy
         /// <param name="shouldAddForwardedHeaders"></param>
         /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
         public ProxyOptions WithShouldAddForwardedHeaders(bool shouldAddForwardedHeaders) => CreateFrom(this, shouldAddForwardedHeaders: shouldAddForwardedHeaders);
+
+        /// <summary>
+        /// Sets the <see cref="HttpClientName"/> property to a cloned instance of this <see cref="ProxyOptions"/>.
+        /// </summary>
+        /// <param name="httpClientName"></param>
+        /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
+        public ProxyOptions WithHttpClientName(string httpClientName) => CreateFrom(this, httpClientName: httpClientName);
 
         /// <summary>
         /// Sets the <see cref="HandleFailure"/> property to a cloned instance of this <see cref="ProxyOptions"/>.

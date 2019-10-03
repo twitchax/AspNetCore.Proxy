@@ -17,6 +17,11 @@ namespace AspNetCore.Proxy.Tests
             services.AddRouting();
             services.AddProxies();
             services.AddControllers();
+            services.AddHttpClient("CustomClient", c => 
+            {
+                // Force a timeout.
+                c.Timeout = TimeSpan.FromMilliseconds(1);
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -146,6 +151,15 @@ namespace AspNetCore.Proxy.Tests
                     hrm.Content = newContent;
                     return Task.CompletedTask;
                 });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        }
+
+        [Route("api/controller/customclient/{postId}")]
+        public Task GetWithCustomClient(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithHttpClientName("CustomClient");
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
