@@ -20,6 +20,15 @@ namespace AspNetCore.Proxy
         public bool ShouldAddForwardedHeaders { get; set; } = true;
 
         /// <summary>
+        /// HttpClientName property.
+        /// </summary>
+        /// <value>
+        /// Overrides the default <see cref="HttpClient"/> used for making the proxy call.
+        /// Default is `null`.
+        /// </value>
+        public string? HttpClientName { get; set; } = null;
+
+        /// <summary>
         /// HandleFailure property.
         /// </summary>
         /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
