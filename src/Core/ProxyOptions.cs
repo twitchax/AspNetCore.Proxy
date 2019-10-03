@@ -26,7 +26,7 @@ namespace AspNetCore.Proxy
         /// Overrides the default <see cref="HttpClient"/> used for making the proxy call.
         /// Default is `null`.
         /// </value>
-        public string? HttpClientName { get; set; } = null;
+        public string HttpClientName { get; set; } = null;
 
         /// <summary>
         /// HandleFailure property.
