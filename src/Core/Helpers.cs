@@ -14,6 +14,8 @@ namespace AspNetCore.Proxy
 {
     internal static class Helpers
     {
+        internal static readonly string ProxyClientName = "AspNetCore.Proxy.ProxyClient";
+
         internal static IEnumerable<Assembly> GetReferencingAssemblies()
         {
             var assemblies = new List<Assembly>();
@@ -38,7 +40,9 @@ namespace AspNetCore.Proxy
 
                 if(options?.BeforeSend != null)
                     await options.BeforeSend(context, proxiedRequest).ConfigureAwait(false);
-                var proxiedResponse = await context.SendProxiedHttpRequest(proxiedRequest).ConfigureAwait(false);
+                var proxiedResponse = await context
+                    .SendProxiedHttpRequest(proxiedRequest, options?.HttpClientName ?? Helpers.ProxyClientName)
+                    .ConfigureAwait(false);
 
                 if(options?.AfterReceive != null)
                     await options.AfterReceive(context, proxiedResponse).ConfigureAwait(false);
@@ -96,11 +100,11 @@ namespace AspNetCore.Proxy
             return requestMessage;
         }
 
-        internal static Task<HttpResponseMessage> SendProxiedHttpRequest(this HttpContext context, HttpRequestMessage message)
+        internal static Task<HttpResponseMessage> SendProxiedHttpRequest(this HttpContext context, HttpRequestMessage message, string httpClientName)
         {
             return context.RequestServices
                 .GetService<IHttpClientFactory>()
-                .CreateClient()
+                .CreateClient(httpClientName)
                 .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 

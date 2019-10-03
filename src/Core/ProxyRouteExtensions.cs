@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -36,10 +37,16 @@ namespace AspNetCore.Proxy
         /// Adds the required services needed for proxying requests.
         /// </summary>
         /// <param name="services">The application service collection.</param>
+        /// <param name="configureProxyClient">An <see cref="Action"/> that can override the underlying `HttpClient` used for proxied calls.</param>
         /// <returns>The same instance.</returns>
-        public static IServiceCollection AddProxies(this IServiceCollection services)
+        public static IServiceCollection AddProxies(this IServiceCollection services, Action<HttpClient> configureProxyClient = null)
         {
-            return services.AddHttpClient();
+            if(configureProxyClient != null)
+                services.AddHttpClient(Helpers.ProxyClientName, configureProxyClient);
+            else
+                services.AddHttpClient(Helpers.ProxyClientName);
+
+            return services;
         }
 
         /// <summary>

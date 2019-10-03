@@ -227,5 +227,13 @@ namespace AspNetCore.Proxy.Tests
 
             Assert.True((await Task.WhenAll(calls)).All(r => r.IsSuccessStatusCode));
         }
+
+        [Fact]
+        public async Task CanProvideCustomClient()
+        {
+            var response = await _client.GetAsync("api/controller/customclient/1");
+            // Expects failure because the HTTP client is set to low timeout.
+            Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        }
     }
 }
