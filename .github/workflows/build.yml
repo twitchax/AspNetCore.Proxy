@@ -28,8 +28,8 @@ jobs:
         name: artifacts
         path: artifacts
     - name: Upload code coverage to codecov.io.
-      run: |
-        curl -s https://codecov.io/bash > codecov
-        chmod +x codecov
-        ./codecov -f ./artifacts/coverage.cobertura.xml -t ${{ secrets.CODECOV_KEY }}
+      uses: codecov/codecov-action@v1.0.2
+      with:
+        token: ${{secrets.CODECOV_KEY}}
+        file: ./artifacts/coverage.cobertura.xml
     
