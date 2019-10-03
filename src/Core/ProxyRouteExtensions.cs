@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -37,9 +38,14 @@ namespace AspNetCore.Proxy
         /// </summary>
         /// <param name="services">The application service collection.</param>
         /// <returns>The same instance.</returns>
-        public static IServiceCollection AddProxies(this IServiceCollection services)
+        public static IServiceCollection AddProxies(this IServiceCollection services, Action<HttpClient> configureProxyClient = null)
         {
-            return services.AddHttpClient();
+            if(configureProxyClient != null)
+                services.AddHttpClient("ProxyClient", configureProxyClient);
+            else
+                services.AddHttpClient("ProxyClient");
+
+            return services;
         }
 
         /// <summary>
