@@ -16,13 +16,14 @@ namespace AspNetCore.Proxy.Tests
         {
             services.AddRouting();
             services.AddProxies();
-            services.AddMvc();
+            services.AddControllers();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             app.UseMiddleware<FakeIpAddressMiddleware>();
-            app.UseMvc();
+            app.UseRouting();
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
             app.UseProxies();
 
             app.UseProxy("echo/post", (context, args) => {

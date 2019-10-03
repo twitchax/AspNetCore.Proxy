@@ -220,9 +220,9 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanProxyConcurrentCalls()
         {
-            var calls = Enumerable.Range(0, 1000).Select(i =>
+            var calls = Enumerable.Range(1, 100).Select(i =>
             {
-                return _client.GetAsync($"api/controller/posts/{i % 100 + 1}");
+                return _client.GetAsync($"api/controller/posts/{i}");
             });
 
             Assert.True((await Task.WhenAll(calls)).All(r => r.IsSuccessStatusCode));
