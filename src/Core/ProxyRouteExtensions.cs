@@ -37,13 +37,14 @@ namespace AspNetCore.Proxy
         /// Adds the required services needed for proxying requests.
         /// </summary>
         /// <param name="services">The application service collection.</param>
+        /// <param name="configureProxyClient">An <see cref="Action"/> that can override the underlying `HttpClient` used for proxied calls.</param>
         /// <returns>The same instance.</returns>
         public static IServiceCollection AddProxies(this IServiceCollection services, Action<HttpClient> configureProxyClient = null)
         {
             if(configureProxyClient != null)
-                services.AddHttpClient("ProxyClient", configureProxyClient);
+                services.AddHttpClient(Helpers.ProxyClientName, configureProxyClient);
             else
-                services.AddHttpClient("ProxyClient");
+                services.AddHttpClient(Helpers.ProxyClientName);
 
             return services;
         }

@@ -14,6 +14,8 @@ namespace AspNetCore.Proxy
 {
     internal static class Helpers
     {
+        internal static readonly string ProxyClientName = "AspNetCore.Proxy.ProxyClient";
+
         internal static IEnumerable<Assembly> GetReferencingAssemblies()
         {
             var assemblies = new List<Assembly>();
@@ -100,7 +102,7 @@ namespace AspNetCore.Proxy
         {
             return context.RequestServices
                 .GetService<IHttpClientFactory>()
-                .CreateClient()
+                .CreateClient(Helpers.ProxyClientName)
                 .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 
