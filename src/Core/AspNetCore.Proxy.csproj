@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>AspNetCore.Proxy</AssemblyName>
     <PackageId>AspNetCore.Proxy</PackageId>
-    <Version>3.0.1</Version>
+    <Version>3.1.0</Version>
     <PackageProjectUrl>https://github.com/twitchax/aspnetcore.proxy</PackageProjectUrl>
 
     <TargetFramework>netstandard2.0</TargetFramework>
