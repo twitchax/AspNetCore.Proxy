@@ -108,7 +108,7 @@ namespace AspNetCore.Proxy
                 .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 
-        internal static async Task WriteProxiedHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
+        internal static Task WriteProxiedHttpResponse(this HttpContext context, HttpResponseMessage responseMessage)
         {
             var response = context.Response;
 
@@ -124,11 +124,8 @@ namespace AspNetCore.Proxy
             }
 
             response.Headers.Remove("transfer-encoding");
-            
-            using (var responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false))
-            {
-                await responseStream.CopyToAsync(response.Body, 81920, context.RequestAborted).ConfigureAwait(false);
-            }
+
+            return responseMessage.Content.CopyToAsync(response.Body);
         }
 
         private static void AddForwardedHeadersToRequest(HttpContext context, HttpRequestMessage requestMessage)
