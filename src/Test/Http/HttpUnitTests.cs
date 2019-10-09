@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -6,23 +5,19 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public class UnitTests
+    public class HttpUnitTests
     {
         private readonly TestServer _server;
         private readonly HttpClient _client;
 
-        public UnitTests()
+        public HttpUnitTests()
         {
             _server = new TestServer(new WebHostBuilder().UseStartup<Startup>());
             _client = _server.CreateClient();
@@ -49,7 +44,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanProxyAttributePostRequest()
+        public async Task CanProxyControllerPostRequest()
         {
             var content = new StringContent("{\"title\": \"foo\", \"body\": \"bar\", \"userId\": 1}", Encoding.UTF8, "application/json");
             var response = await _client.PostAsync("api/posts", content);
@@ -59,9 +54,8 @@ namespace AspNetCore.Proxy.Tests
             Assert.Contains("101", JObject.Parse(responseString).Value<string>("id"));
         }
 
-
         [Fact]
-        public async Task CanProxyContentHeadersPostRequest()
+        public async Task CanProxyControllerContentHeadersPostRequest()
         {
             var content = "hello world";
             var contentType = "application/xcustom";
@@ -80,7 +74,7 @@ namespace AspNetCore.Proxy.Tests
 
 
         [Fact]
-        public async Task CanProxyAttributePostWithFormRequest()
+        public async Task CanProxyControllerPostWithFormRequest()
         {
             var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "xyz", "123" }, { "abc", "321" } });
             var response = await _client.PostAsync("api/posts", content);
@@ -95,7 +89,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanProxyAttributeCatchAll()
+        public async Task CanProxyControllerCatchAll()
         {
             var response = await _client.GetAsync("api/catchall/posts/1");
             response.EnsureSuccessStatusCode();
@@ -215,6 +209,14 @@ namespace AspNetCore.Proxy.Tests
             var response = await _client.GetAsync("api/controller/customfail/1");
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
             Assert.Equal("Things borked.", await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task CanGetIntercept()
+        {
+            var response = await _client.GetAsync("api/controller/intercept/1");
+            response.EnsureSuccessStatusCode();
+            Assert.Equal("This was intercepted and not proxied!", await response.Content.ReadAsStringAsync());
         }
 
         [Fact]

@@ -42,9 +42,29 @@ public void ConfigureServices(IServiceCollection services)
 }
 ```
 
+#### Run a Proxy
+
+You can run a proxy over all endpoints.
+
+```csharp
+app.RunProxy("https://google.com");
+```
+
+In addition, you can route this proxy depending on the context.
+
+```csharp
+app.RunProxy(context =>
+{
+    if(context.WebSockets.IsWebSocketRequest)
+        return "wss://mysite.com/ws";
+
+    return "https://mysite.com";
+});
+```
+
 #### Existing Controller
 
-You can use the proxy functionality on an existing `Controller` by leveraging the `Proxy` extension method.
+You can define a proxy over a specific endpoint on an existing `Controller` by leveraging the `Proxy` extension method.
 
 ```csharp
 public class MyController : Controller
@@ -53,6 +73,19 @@ public class MyController : Controller
     public Task GetPosts(int postId)
     {
         return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+    }
+}
+```
+
+In addition, you can proxy to WebSocket endpoints.
+
+```csharp
+public class MyController : Controller
+{
+    [Route("ws")]
+    public Task OpenWs()
+    {
+        return this.ProxyAsync($"wss://myendpoint.com/ws");
     }
 }
 ```
@@ -67,32 +100,48 @@ public class MyController : Controller
     {
         var options = ProxyOptions.Instance
             .WithShouldAddForwardedHeaders(false)
+            .WithHttpClientName("MyCustomClient")
+            .WithIntercept(async context =>
+            {
+                if(c.Connection.RemotePort == 7777)
+                {
+                    c.Response.StatusCode = 300;
+                    await c.Response.WriteAsync("I don't like this port, so I am not proxying this request!");
+                    return true;
+                }
+
+                return false;
+            })
             .WithBeforeSend((c, hrm) =>
             {
                 // Set something that is needed for the downstream endpoint.
                 hrm.Headers.Authorization = new AuthenticationHeaderValue("Basic");
+
+                return Task.CompletedTask;
             })
             .WithAfterReceive((c, hrm) =>
             {
                 // Alter the content in  some way before sending back to client.
                 var newContent = new StringContent("It's all greek...er, Latin...to me!");
                 hrm.Content = newContent;
+
+                return Task.CompletedTask;
             })
-            .WithHandleFailure((c, e) =>
+            .WithHandleFailure(async (c, e) =>
             {
                 // Return a custom error response.
                 c.Response.StatusCode = 403;
-                c.Response.WriteAsync("Things borked.");
+                await c.Response.WriteAsync("Things borked.");
             });
 
-        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
     }
 }
 ```
 
 #### Application Builder
 
-You can define a proxy in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
+You can define a proxy over a specific endpoint in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
 
 ```csharp
 app.UseProxy("api/{arg1}/{arg2}", async (args) => {
