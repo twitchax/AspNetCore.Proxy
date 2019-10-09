@@ -35,30 +35,43 @@ namespace AspNetCore.Proxy.Tests
                 {
                     options.ListenLocalhost(5003);
                 })
-                .ConfigureServices(services => services.AddProxies().AddRouting().AddControllers())
+                .ConfigureServices(services => services.AddProxies())
                 .Configure(app => 
                 {
                     app.UseWebSockets();
-                    app.UseRouting();
-                    app.UseEndpoints(end => end.MapControllers());
                     
                     app.RunProxy(context =>
                     {
                         if(context.Request.Path.StartsWithSegments("/should/forward/to/ws"))
-                            return $"ws://localhost:5004";
+                            return "ws://localhost:5004";
 
                         if(context.Request.Path.StartsWithSegments("/should/forward/to/http"))
-                            return $"http://localhost:5004";
+                            return "http://localhost:5004";
 
                         if(context.WebSockets.IsWebSocketRequest)
-                            return $"ws://localhost:5004";
+                            return "ws://localhost:5004";
                         
-                        return $"http://localhost:5004";
+                        return "http://localhost:5004";
                     });
                 })
                 .Build().RunAsync(token);
 
-            return Task.WhenAll(proxiedServerTask, proxyServerTask);
+            var proxyServerTask2 = WebHost.CreateDefaultBuilder()
+                .SuppressStatusMessages(true)
+                .ConfigureLogging(logging => logging.ClearProviders())
+                .ConfigureKestrel(options =>
+                {
+                    options.ListenLocalhost(5007);
+                })
+                .ConfigureServices(services => services.AddProxies())
+                .Configure(app => 
+                {
+                    app.UseWebSockets();
+                    app.RunProxy("http://localhost:5004");
+                })
+                .Build().RunAsync(token);
+
+            return Task.WhenAll(proxiedServerTask, proxyServerTask, proxyServerTask2);
         }
     }
 }

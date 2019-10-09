@@ -75,6 +75,16 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task CanDoSimpleServer()
+        {
+            var send1 = "TEST1";
+            var expected1 = $"[{send1}]";
+            
+            var response = await _httpClient.PostAsync("http://localhost:5007/at/some/other/path", new StringContent(send1));
+            Assert.Equal(expected1, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
         public async Task CanFailOnIncorrectForwardToWs()
         {
             var response = await _httpClient.GetAsync("http://localhost:5003/should/forward/to/ws");
