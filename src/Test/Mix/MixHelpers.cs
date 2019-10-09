@@ -44,6 +44,12 @@ namespace AspNetCore.Proxy.Tests
                     
                     app.RunProxy(context =>
                     {
+                        if(context.Request.Path.StartsWithSegments("/should/forward/to/ws"))
+                            return $"ws://localhost:5004";
+
+                        if(context.Request.Path.StartsWithSegments("/should/forward/to/http"))
+                            return $"http://localhost:5004";
+
                         if(context.WebSockets.IsWebSocketRequest)
                             return $"ws://localhost:5004";
                         

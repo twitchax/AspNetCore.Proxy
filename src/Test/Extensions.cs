@@ -14,6 +14,7 @@ namespace AspNetCore.Proxy.Tests
         const int BUFFER_SIZE = 4096;
         internal static readonly string SupportedProtocol = "MyProtocol1";
         internal static readonly string CloseMessage = "PLEASE_CLOSE";
+        internal static readonly string KillMessage = "PLEASE_KILL";
         internal static readonly string CloseDescription = "ARBITRARY";
 
         internal static Task SendShortMessageAsync(this WebSocket socket, string message)
@@ -47,6 +48,11 @@ namespace AspNetCore.Proxy.Tests
                 {
                     await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, CloseDescription, context.RequestAborted);
                     break;
+                }
+
+                if(message == KillMessage)
+                {
+                    throw new Exception();
                 }
                 
                 // Basically, this server just always sends back a message that is the message it received wrapped with "[]".

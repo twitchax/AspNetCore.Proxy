@@ -13,36 +13,21 @@ namespace AspNetCore.Proxy
     {
         internal static async Task ExecuteHttpProxyOperationAsync(this HttpContext context, string uri, ProxyOptions options = null)
         {
-            try
-            {
-                // If `true`, this proxy call has been intercepted.
-                if(options?.Intercept != null && await options.Intercept(context))
-                    return;
+            // If `true`, this proxy call has been intercepted.
+            if(options?.Intercept != null && await options.Intercept(context))
+                return;
 
-                var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
+            var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
 
-                if(options?.BeforeSend != null)
-                    await options.BeforeSend(context, proxiedRequest).ConfigureAwait(false);
-                var proxiedResponse = await context
-                    .SendProxiedHttpRequestAsync(proxiedRequest, options?.HttpClientName ?? Helpers.HttpProxyClientName)
-                    .ConfigureAwait(false);
+            if(options?.BeforeSend != null)
+                await options.BeforeSend(context, proxiedRequest).ConfigureAwait(false);
+            var proxiedResponse = await context
+                .SendProxiedHttpRequestAsync(proxiedRequest, options?.HttpClientName ?? Helpers.HttpProxyClientName)
+                .ConfigureAwait(false);
 
-                if(options?.AfterReceive != null)
-                    await options.AfterReceive(context, proxiedResponse).ConfigureAwait(false);
-                await context.WriteProxiedHttpResponseAsync(proxiedResponse).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (options?.HandleFailure == null)
-                {
-                    // If the failures are not caught, then write a generic response.
-                    context.Response.StatusCode = 502;
-                    await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.").ConfigureAwait(false);
-                    return;
-                }
-
-                await options.HandleFailure(context, e).ConfigureAwait(false);
-            }
+            if(options?.AfterReceive != null)
+                await options.AfterReceive(context, proxiedResponse).ConfigureAwait(false);
+            await context.WriteProxiedHttpResponseAsync(proxiedResponse).ConfigureAwait(false);
         }
 
         private static HttpRequestMessage CreateProxiedHttpRequest(this HttpContext context, string uriString, bool shouldAddForwardedHeaders)

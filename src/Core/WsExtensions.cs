@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +10,8 @@ namespace AspNetCore.Proxy
 {
     internal static class WsExtensions
     {
+        internal static readonly int CloseMessageMaxSize = 123;
+
         internal static async Task ExecuteWsProxyOperationAsync(this HttpContext context, string uri, ProxyOptions options = null)
         {
             using (var socketToEndpoint = new ClientWebSocket())
@@ -27,22 +30,7 @@ namespace AspNetCore.Proxy
 
                 // TODO make a proxy option action to edit the web socket options.
 
-                try
-                {
-                    await socketToEndpoint.ConnectAsync(new Uri(uri), context.RequestAborted);
-                }
-                catch (Exception e)
-                {
-                    if (options?.HandleFailure == null)
-                    {
-                        // If the failures are not caught, then write a generic response.
-                        context.Response.StatusCode = 502;
-                        await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}.").ConfigureAwait(false);
-                        return;
-                    }
-
-                    await options.HandleFailure(context, e).ConfigureAwait(false);
-                }
+                await socketToEndpoint.ConnectAsync(new Uri(uri), context.RequestAborted);
 
                 using (var socketToClient = await context.WebSockets.AcceptWebSocketAsync(socketToEndpoint.SubProtocol))
                 {
@@ -65,12 +53,17 @@ namespace AspNetCore.Proxy
                 {
                     result = await source.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
                 }
-                catch (OperationCanceledException)
+                catch (Exception e)
                 {
-                    await destination.CloseOutputAsync(WebSocketCloseStatus.EndpointUnavailable, null, cancellationToken);
+                    var closeMessageBytes = Encoding.UTF8.GetBytes($"WebSocket failure.\n\n{e.Message}\n\n{e.StackTrace}");
+                    var closeMessage = Encoding.UTF8.GetString(closeMessageBytes, 0, Math.Min(closeMessageBytes.Length, CloseMessageMaxSize));
+                    await destination.CloseOutputAsync(WebSocketCloseStatus.EndpointUnavailable, closeMessage, cancellationToken);
                     return;
                 }
 
+                if(destination.State != WebSocketState.Open && destination.State != WebSocketState.CloseReceived)
+                    return;
+                    
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     await destination.CloseOutputAsync(source.CloseStatus.Value, source.CloseStatusDescription, cancellationToken);

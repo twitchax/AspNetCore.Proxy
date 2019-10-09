@@ -31,6 +31,7 @@ namespace AspNetCore.Proxy.Tests
         public WsUnitTests(WsServerFixture fixture)
         {
             _client = new ClientWebSocket();
+            _client.Options.SetRequestHeader("SomeHeader", "SomeValue");
             _client.Options.AddSubProtocol(Extensions.SupportedProtocol);
         }
 
@@ -64,6 +65,28 @@ namespace AspNetCore.Proxy.Tests
             Assert.Equal(WebSocketMessageType.Close, result.MessageType);
             Assert.Equal(WebSocketCloseStatus.NormalClosure, result.CloseStatus);
             Assert.Equal(Extensions.CloseDescription, result.CloseStatusDescription);
+
+            await _client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, Extensions.CloseDescription, CancellationToken.None);
+        }
+
+        [Fact]
+        public async Task CanCatchAbruptClose()
+        {
+            var send1 = "PLEASE_KILL";
+            var expected1 = $"[{send1}]";
+
+            var send2 = "TEST2";
+            var expected2 = $"[{send2}]";
+
+            await _client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None);
+
+            // Send a message.
+            await _client.SendShortMessageAsync(send1);
+
+            // Receive failed close.
+            var result = await _client.ReceiveAsync(new ArraySegment<byte>(new byte[4096]), CancellationToken.None);
+            Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+            Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, result.CloseStatus);
 
             await _client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, Extensions.CloseDescription, CancellationToken.None);
         }
