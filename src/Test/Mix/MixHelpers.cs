@@ -35,7 +35,13 @@ namespace AspNetCore.Proxy.Tests
                 {
                     options.ListenLocalhost(5003);
                 })
-                .ConfigureServices(services => services.AddProxies())
+                .ConfigureServices(services => 
+                {
+                    services.AddProxies(client =>
+                    {
+                        // This doesn't do anything, but it covers more code paths. :)
+                    });
+                })
                 .Configure(app => 
                 {
                     app.UseWebSockets();
