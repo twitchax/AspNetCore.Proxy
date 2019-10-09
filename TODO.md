@@ -5,6 +5,7 @@ TODO:
   * Add options for WebSocket calls.
   * Make options handlers called `Async`?
   * Allow the user to set options via a lambda for builder purposes?
+  * Add a `RunProxy` that takes a `getProxiedAddress` as a `Task<string>`.
 
 Some ideas of how `UseProxies` should work in 4.0.0.
 

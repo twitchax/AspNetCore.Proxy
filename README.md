@@ -42,9 +42,29 @@ public void ConfigureServices(IServiceCollection services)
 }
 ```
 
+#### Run a Proxy
+
+You can run a proxy over all endpoints.
+
+```csharp
+app.RunProxy("https://google.com");
+```
+
+In addition, you can route this proxy depending on the context.
+
+```csharp
+app.RunProxy(context =>
+{
+    if(context.WebSockets.IsWebSocketRequest)
+        return "wss://mysite.com/ws";
+
+    return "https://mysite.com";
+});
+```
+
 #### Existing Controller
 
-You can use the proxy functionality on an existing `Controller` by leveraging the `Proxy` extension method.
+You can define a proxy over a specific endpoint on an existing `Controller` by leveraging the `Proxy` extension method.
 
 ```csharp
 public class MyController : Controller
@@ -53,6 +73,19 @@ public class MyController : Controller
     public Task GetPosts(int postId)
     {
         return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+    }
+}
+```
+
+In addition, you can proxy to WebSocket endpoints.
+
+```csharp
+public class MyController : Controller
+{
+    [Route("ws")]
+    public Task OpenWs()
+    {
+        return this.ProxyAsync($"wss://myendpoint.com/ws");
     }
 }
 ```
@@ -108,7 +141,7 @@ public class MyController : Controller
 
 #### Application Builder
 
-You can define a proxy in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
+You can define a proxy over a specific endpoint in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
 
 ```csharp
 app.UseProxy("api/{arg1}/{arg2}", async (args) => {
