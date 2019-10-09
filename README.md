@@ -101,7 +101,7 @@ public class MyController : Controller
                 await c.Response.WriteAsync("Things borked.");
             });
 
-        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
     }
 }
 ```
