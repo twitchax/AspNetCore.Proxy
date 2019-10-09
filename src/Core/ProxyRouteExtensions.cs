@@ -30,7 +30,7 @@ namespace AspNetCore.Proxy
         /// </returns>
         public static Task ProxyAsync(this ControllerBase controller, string uri, ProxyOptions options = null)
         {
-            return Helpers.ExecuteProxyOperation(controller.HttpContext, uri, options);
+            return controller.HttpContext.ExecuteProxyOperationAsync(uri, options);
         }
 
         /// <summary>
@@ -42,9 +42,9 @@ namespace AspNetCore.Proxy
         public static IServiceCollection AddProxies(this IServiceCollection services, Action<HttpClient> configureProxyClient = null)
         {
             if(configureProxyClient != null)
-                services.AddHttpClient(Helpers.ProxyClientName, configureProxyClient);
+                services.AddHttpClient(Helpers.HttpProxyClientName, configureProxyClient);
             else
-                services.AddHttpClient(Helpers.ProxyClientName);
+                services.AddHttpClient(Helpers.HttpProxyClientName);
 
             return services;
         }
@@ -94,6 +94,56 @@ namespace AspNetCore.Proxy
             }
         }
 
+        #region RunProxy Overloads
+
+        /// <summary>
+        /// Terminating middleware which creates a proxy over a specified endpoint.
+        /// </summary>
+        /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
+        /// <param name="proxiedAddress">The proxied address.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void RunProxy(this IApplicationBuilder app, string proxiedAddress, ProxyOptions options = null)
+        {
+            app.Run(context =>
+            {
+                return context.ExecuteProxyOperationAsync($"{proxiedAddress}{context.Request.Path}", options);
+            });
+        }
+
+        /// <summary>
+        /// Terminating middleware which creates a proxy over a specified endpoint.
+        /// </summary>
+        /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
+        /// <param name="getProxiedAddress">A lambda { (context) => <see cref="string"/> } which returns the address to which the request is proxied.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void RunProxy(this IApplicationBuilder app, Func<HttpContext, string> getProxiedAddress, ProxyOptions options = null)
+        {
+            app.Run(context =>
+            {
+                return context.ExecuteProxyOperationAsync($"{getProxiedAddress(context)}{context.Request.Path}", options);
+            });
+        }
+
+        #endregion
+
+        #region UseProxy Overloads
+
+        /// <summary>
+        /// Middleware which creates an ad hoc proxy over a specified endpoint.
+        /// </summary>
+        /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
+        /// <param name="endpoint">The local route endpoint.</param>
+        /// <param name="proxiedAddress">The proxied address.</param>
+        /// <param name="options">Extra options to apply during proxying.</param>
+        public static void UseProxy(this IApplicationBuilder app, string endpoint, string proxiedAddress, ProxyOptions options = null)
+        {
+            UseProxy_GpaSync(
+                app, 
+                endpoint, 
+                (context, args) => proxiedAddress, 
+                options);
+        }
+
         /// <summary>
         /// Middleware which creates an ad hoc proxy over a specified endpoint.
         /// </summary>
@@ -109,8 +159,6 @@ namespace AspNetCore.Proxy
                 (context, args) => getProxiedAddress(context, args), 
                 options);
         }
-
-        #region UseProxy Overloads
 
         /// <summary>
         /// Middleware which creates an ad hoc proxy over a specified endpoint.
@@ -199,7 +247,7 @@ namespace AspNetCore.Proxy
                 builder.MapMiddlewareRoute(endpoint, proxyApp => {
                     proxyApp.Run(async context => {
                         var uri = await getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value)).ConfigureAwait(false);
-                        await Helpers.ExecuteProxyOperation(context, uri, options);
+                        await context.ExecuteProxyOperationAsync(uri, options);
                     });
                 });
             });
@@ -212,7 +260,7 @@ namespace AspNetCore.Proxy
                 builder.MapMiddlewareRoute(endpoint, proxyApp => {
                     proxyApp.Run(async context => {
                         var uri = getProxiedAddress(context, context.GetRouteData().Values.ToDictionary(v => v.Key, v => v.Value));
-                        await Helpers.ExecuteProxyOperation(context, uri, options);
+                        await context.ExecuteProxyOperationAsync(uri, options);
                     });
                 });
             });

@@ -67,22 +67,38 @@ public class MyController : Controller
     {
         var options = ProxyOptions.Instance
             .WithShouldAddForwardedHeaders(false)
+            .WithHttpClientName("MyCustomClient")
+            .WithIntercept(async context =>
+            {
+                if(c.Connection.RemotePort == 7777)
+                {
+                    c.Response.StatusCode = 300;
+                    await c.Response.WriteAsync("I don't like this port, so I am not proxying this request!");
+                    return true;
+                }
+
+                return false;
+            })
             .WithBeforeSend((c, hrm) =>
             {
                 // Set something that is needed for the downstream endpoint.
                 hrm.Headers.Authorization = new AuthenticationHeaderValue("Basic");
+
+                return Task.CompletedTask;
             })
             .WithAfterReceive((c, hrm) =>
             {
                 // Alter the content in  some way before sending back to client.
                 var newContent = new StringContent("It's all greek...er, Latin...to me!");
                 hrm.Content = newContent;
+
+                return Task.CompletedTask;
             })
-            .WithHandleFailure((c, e) =>
+            .WithHandleFailure(async (c, e) =>
             {
                 // Return a custom error response.
                 c.Response.StatusCode = 403;
-                c.Response.WriteAsync("Things borked.");
+                await c.Response.WriteAsync("Things borked.");
             });
 
         return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");

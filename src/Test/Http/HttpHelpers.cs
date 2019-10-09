@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public class Startup
+    internal class Startup
     {
         public void ConfigureServices(IServiceCollection services)
         {
@@ -28,8 +28,8 @@ namespace AspNetCore.Proxy.Tests
         {
             app.UseMiddleware<FakeIpAddressMiddleware>();
             app.UseRouting();
-            app.UseEndpoints(endpoints => endpoints.MapControllers());
             app.UseProxies();
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
 
             app.UseProxy("echo/post", (context, args) => {
                 return Task.FromResult($"https://postman-echo.com/post");
@@ -105,26 +105,41 @@ namespace AspNetCore.Proxy.Tests
         {
             return $"https://jsonplaceholder.typicode.com/posts/{postId}";
         }
-
-        [ProxyRoute("api/posts")]
-        public static string ProxyPostRequest()
-        {
-            return $"https://jsonplaceholder.typicode.com/posts";
-        }
-
-        [ProxyRoute("api/catchall/{*rest}")]
-        public static string ProxyCatchAll(string rest)
-        {
-            return $"https://jsonplaceholder.typicode.com/{rest}";
-        }
     }
 
     public class MvcController : ControllerBase
     {
+        [Route("api/posts")]
+        public Task ProxyPostRequest()
+        {
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts");
+        }
+
+        [Route("api/catchall/{**rest}")]
+        public Task ProxyCatchAll(string rest)
+        {
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/{rest}");
+        }
+
         [Route("api/controller/posts/{postId}")]
         public Task GetPosts(int postId)
         {
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+        }
+
+        [Route("api/controller/intercept/{postId}")]
+        public Task GetWithIntercept(int postId)
+        {
+            var options = ProxyOptions.Instance
+                .WithIntercept(async c =>
+                {
+                    c.Response.StatusCode = 200;
+                    await c.Response.WriteAsync("This was intercepted and not proxied!");
+
+                    return true;
+                });
+
+            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
         [Route("api/controller/customrequest/{postId}")]
@@ -135,8 +150,8 @@ namespace AspNetCore.Proxy.Tests
                 {
                     hrm.RequestUri = new Uri("https://jsonplaceholder.typicode.com/posts/2");
                     return Task.CompletedTask;
-                    })
-                    .WithShouldAddForwardedHeaders(false);
+                })
+                .WithShouldAddForwardedHeaders(false);
 
             return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
