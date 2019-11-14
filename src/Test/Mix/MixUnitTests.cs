@@ -99,5 +99,11 @@ namespace AspNetCore.Proxy.Tests
                 await _wsClient.ConnectAsync(new Uri("ws://localhost:5003/should/forward/to/http"), CancellationToken.None);
             });
         }
+
+        [Fact]
+        public async Task EndpointTest()
+        {
+            var response = await _httpClient.GetAsync("http://localhost:5003/my/pattern/4");
+        }
     }
 }

@@ -1,10 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyModel;
 
 namespace AspNetCore.Proxy
 {
+    public delegate string EndpointComputerToString(HttpContext context, IDictionary<string, object> arguments);
+    public delegate ValueTask<string> EndpointComputerToValueTask(HttpContext context, IDictionary<string, object> arguments);
+
+    public interface IBuilder<TInterface, TConcrete> where TConcrete : class
+    {
+        TInterface New();
+        TConcrete Build();
+    }
+
     internal static class Helpers
     {
         internal static readonly string HttpProxyClientName = "AspNetCore.Proxy.HttpProxyClient";

@@ -1,9 +1,3 @@
-using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
-using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
@@ -12,6 +6,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using AspNetCore.Proxy.Extensions;
+using AspNetCore.Proxy.Builders;
 
 namespace AspNetCore.Proxy.Tests
 {
@@ -20,7 +16,14 @@ namespace AspNetCore.Proxy.Tests
         [Route("api/ws")]
         public Task ProxyWsController()
         {
-            return this.ProxyAsync("ws://localhost:5002/");
+            return this.WsProxyAsync("ws://localhost:5002/");
+        }
+
+        [Route("api/ws2")]
+        public Task ProxyWsControllerWithWsProxy()
+        {
+            var wsProxy = WsProxyBuilder.Instance.WithEndpoint("ws://localhost:5002/").Build();
+            return this.WsProxyAsync(wsProxy);
         }
     }
     
@@ -49,7 +52,15 @@ namespace AspNetCore.Proxy.Tests
                     options.ListenLocalhost(5001);
                 })
                 .ConfigureServices(services => services.AddProxies().AddRouting().AddControllers())
-                .Configure(app => app.UseWebSockets().UseRouting().UseEndpoints(end => end.MapControllers()).UseProxy("/ws", "ws://localhost:5002/"))
+                .Configure(app => 
+                {
+                    app.UseWebSockets().UseRouting().UseEndpoints(end => end.MapControllers());
+                    
+                    app.UseProxies(proxies =>
+                    {
+                        proxies.Map("/ws", proxy => proxy.UseWs("ws://localhost:5002/"));
+                    });
+                })
                 .Build().RunAsync(token);
 
             return Task.WhenAll(proxiedServerTask, proxyServerTask);

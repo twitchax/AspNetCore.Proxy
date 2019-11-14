@@ -38,6 +38,7 @@ namespace AspNetCore.Proxy.Tests
         [Theory]
         [InlineData("ws://localhost:5001/ws")]
         [InlineData("ws://localhost:5001/api/ws")]
+        [InlineData("ws://localhost:5001/api/ws2")]
         public async Task CanDoWebSockets(string server)
         {
             var send1 = "TEST1";

@@ -6,7 +6,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using AspNetCore.Proxy.Extensions;
+using AspNetCore.Proxy.Options;
+using AspNetCore.Proxy.Builders;
 
 namespace AspNetCore.Proxy.Tests
 {
@@ -28,37 +32,21 @@ namespace AspNetCore.Proxy.Tests
         {
             app.UseMiddleware<FakeIpAddressMiddleware>();
             app.UseRouting();
-            app.UseProxies();
             app.UseEndpoints(endpoints => endpoints.MapControllers());
 
-            app.UseProxy("echo/post", (context, args) => {
-                return Task.FromResult($"https://postman-echo.com/post");
-            });
+            app.UseProxies(proxies =>
+            {
+                proxies.Map("echo/post", proxy => proxy.UseHttp("https://postman-echo.com/post"));
 
-            app.UseProxy("api/comments/contextandargstotask/{postId}", (context, args) => {
-                context.GetHashCode();
-                return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
-            });
+                proxies.Map("api/comments/contextandargstotask/{postId}", proxy => proxy.UseHttp((c, args) =>
+                {
+                    return new ValueTask<string>($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
+                }));
 
-            app.UseProxy("api/comments/argstotask/{postId}", (args) => {
-                return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
-            });
-
-            app.UseProxy("api/comments/emptytotask", () => {
-                return Task.FromResult($"https://jsonplaceholder.typicode.com/comments/1");
-            });
-
-            app.UseProxy("api/comments/contextandargstostring/{postId}", (context, args) => {
-                context.GetHashCode();
-                return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
-            });
-
-            app.UseProxy("api/comments/argstostring/{postId}", (args) => {
-                return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
-            });
-
-            app.UseProxy("api/comments/emptytostring", () => {
-                return $"https://jsonplaceholder.typicode.com/comments/1";
+                proxies.Map("api/comments/contextandargstostring/{postId}", proxy => proxy.UseHttp((c, args) =>
+                {
+                    return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
+                }));
             });
         }
     }
@@ -92,97 +80,91 @@ namespace AspNetCore.Proxy.Tests
         }
     }
 
-    public static class UseProxies
-    {
-        [ProxyRoute("api/posts/totask/{postId}")]
-        public static Task<string> ProxyToTask(int postId)
-        {
-            return Task.FromResult($"https://jsonplaceholder.typicode.com/posts/{postId}");
-        }
-
-        [ProxyRoute("api/posts/tostring/{postId}")]
-        public static string ProxyToString(int postId)
-        {
-            return $"https://jsonplaceholder.typicode.com/posts/{postId}";
-        }
-    }
-
     public class MvcController : ControllerBase
     {
         [Route("api/posts")]
         public Task ProxyPostRequest()
         {
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts");
+            // Take the builder route here for code coverage purposes.
+            return this.ProxyAsync(proxy => proxy.UseHttp("https://jsonplaceholder.typicode.com/posts"));
         }
 
         [Route("api/catchall/{**rest}")]
         public Task ProxyCatchAll(string rest)
         {
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/{rest}");
+            // Take the built builder route here for code coverage purposes.
+            var proxy = ProxyBuilder.Instance.UseHttp($"https://jsonplaceholder.typicode.com/{rest}").Build();
+            return this.ProxyAsync(proxy);
         }
 
         [Route("api/controller/posts/{postId}")]
         public Task GetPosts(int postId)
         {
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+            // Take the http proxy builder route for code coverage purposes.
+            var httpProxy = HttpProxyBuilder.Instance.WithEndpoint($"https://jsonplaceholder.typicode.com/posts/{postId}").Build();
+            return this.HttpProxyAsync(httpProxy);
         }
 
         [Route("api/controller/intercept/{postId}")]
         public Task GetWithIntercept(int postId)
         {
-            var options = ProxyOptions.Instance
+            var options = HttpProxyOptionsBuilder.Instance
                 .WithIntercept(async c =>
                 {
                     c.Response.StatusCode = 200;
                     await c.Response.WriteAsync("This was intercepted and not proxied!");
 
                     return true;
-                });
+                })
+                .Build();
 
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
         [Route("api/controller/customrequest/{postId}")]
         public Task GetWithCustomRequest(int postId)
         {
-            var options = ProxyOptions.Instance
+            var options = HttpProxyOptionsBuilder.Instance
                 .WithBeforeSend((c, hrm) =>
                 {
                     hrm.RequestUri = new Uri("https://jsonplaceholder.typicode.com/posts/2");
                     return Task.CompletedTask;
                 })
-                .WithShouldAddForwardedHeaders(false);
+                .WithShouldAddForwardedHeaders(false)
+                .Build();
 
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
         [Route("api/controller/customresponse/{postId}")]
         public Task GetWithCustomResponse(int postId)
         {
-            var options = ProxyOptions.Instance
+            var options = HttpProxyOptionsBuilder.Instance
                 .WithAfterReceive((c, hrm) =>
                 {
                     var newContent = new StringContent("It's all greek...er, Latin...to me!");
                     hrm.Content = newContent;
                     return Task.CompletedTask;
-                });
+                })
+                .Build();
 
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
         [Route("api/controller/customclient/{postId}")]
         public Task GetWithCustomClient(int postId)
         {
-            var options = ProxyOptions.Instance
-                .WithHttpClientName("CustomClient");
+            var options = HttpProxyOptionsBuilder.Instance
+                .WithHttpClientName("CustomClient")
+                .Build();
 
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
         [Route("api/controller/badresponse/{postId}")]
         public Task GetWithBadResponse(int postId)
         {
-            var options = ProxyOptions.Instance
+            var options = HttpProxyOptionsBuilder.Instance
                 .WithAfterReceive((c, hrm) =>
                 {
                     if(hrm.StatusCode == HttpStatusCode.NotFound)
@@ -192,27 +174,31 @@ namespace AspNetCore.Proxy.Tests
                     }
 
                     return Task.CompletedTask;
-                });
+                })
+                .Build();
 
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/badpath/{postId}", options);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/badpath/{postId}", options);
         }
 
         [Route("api/controller/fail/{postId}")]
         public Task GetWithGenericFail(int postId)
         {
-            var options = ProxyOptions.Instance.WithBeforeSend((c, hrm) =>
-            {
-                var a = 0;
-                var b = 1 / a;
-                return Task.CompletedTask;
-            });
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+            var options = HttpProxyOptionsBuilder.Instance
+                .WithBeforeSend((c, hrm) =>
+                {
+                    var a = 0;
+                    var b = 1 / a;
+                    return Task.CompletedTask;
+                })
+                .Build();
+                
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
         [Route("api/controller/customfail/{postId}")]
         public Task GetWithCustomFail(int postId)
         {
-            var options = ProxyOptions.Instance
+            var options = HttpProxyOptionsBuilder.Instance
                 .WithBeforeSend((c, hrm) =>
                 {
                     var a = 0;
@@ -223,9 +209,10 @@ namespace AspNetCore.Proxy.Tests
                 {
                     c.Response.StatusCode = 403;
                     return c.Response.WriteAsync("Things borked.");
-                });
+                })
+                .Build();
 
-            return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
     }
 }

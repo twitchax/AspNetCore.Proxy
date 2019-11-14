@@ -1,10 +1,13 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using AspNetCore.Proxy.Extensions;
 
 namespace AspNetCore.Proxy.Tests
 {
@@ -39,26 +42,43 @@ namespace AspNetCore.Proxy.Tests
                 {
                     services.AddProxies(client =>
                     {
-                        // This doesn't do anything, but it covers more code paths. :)
+                        // Code coverage FTW.
                     });
                 })
                 .Configure(app => 
                 {
                     app.UseWebSockets();
-                    
-                    app.RunProxy(context =>
+
+                    app.UseRouting();
+                    app.UseEndpoints(endpoints =>
                     {
-                        if(context.Request.Path.StartsWithSegments("/should/forward/to/ws"))
-                            return "ws://localhost:5004";
+                        endpoints.Map("my/pattern/{lol}", context =>
+                        {
+                            var endpoint = context.GetEndpoint();
 
-                        if(context.Request.Path.StartsWithSegments("/should/forward/to/http"))
-                            return "http://localhost:5004";
+                            var values = context.Request.RouteValues;
 
-                        if(context.WebSockets.IsWebSocketRequest)
-                            return "ws://localhost:5004";
-                        
-                        return "http://localhost:5004";
+                            Console.WriteLine("here");
+
+                            return Task.CompletedTask;
+                        });
                     });
+
+                    app.RunProxy(proxy => proxy
+                        .UseHttp((context, args) =>
+                        {
+                            if(context.Request.Path.StartsWithSegments("/should/forward/to/ws"))
+                                return "ws://localhost:5004";
+
+                            return "http://localhost:5004";
+                        })
+                        .UseWs((context, args) =>
+                        {
+                            if(context.Request.Path.StartsWithSegments("/should/forward/to/http"))
+                                return "http://localhost:5004";
+
+                            return "ws://localhost:5004";
+                        }));
                 })
                 .Build().RunAsync(token);
 
@@ -73,7 +93,7 @@ namespace AspNetCore.Proxy.Tests
                 .Configure(app => 
                 {
                     app.UseWebSockets();
-                    app.RunProxy("http://localhost:5004");
+                    app.RunProxy(proxy => proxy.UseHttp("http://localhost:5004"));
                 })
                 .Build().RunAsync(token);
 

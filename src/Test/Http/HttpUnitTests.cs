@@ -24,26 +24,6 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanProxyAttributeToTask()
-        {
-            var response = await _client.GetAsync("api/posts/totask/1");
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
-        }
-
-        [Fact]
-        public async Task CanProxyAttributeToString()
-        {
-            var response = await _client.GetAsync("api/posts/tostring/1");
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
-        }
-
-        [Fact]
         public async Task CanProxyControllerPostRequest()
         {
             var content = new StringContent("{\"title\": \"foo\", \"body\": \"bar\", \"userId\": 1}", Encoding.UTF8, "application/json");
@@ -71,7 +51,6 @@ namespace AspNetCore.Proxy.Tests
             Assert.Equal(contentType, JObject.Parse(responseString)["headers"]["content-type"]);
             Assert.Equal(content.Length, JObject.Parse(responseString)["headers"]["content-length"]);
         }
-
 
         [Fact]
         public async Task CanProxyControllerPostWithFormRequest()
@@ -109,49 +88,9 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanProxyMiddlewareWithArgsToTask()
-        {
-            var response = await _client.GetAsync("api/comments/argstotask/1");
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
-        }
-
-        [Fact]
-        public async Task CanProxyMiddlewareWithEmptyToTask()
-        {
-            var response = await _client.GetAsync("api/comments/emptytotask");
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
-        }
-
-        [Fact]
         public async Task CanProxyMiddlewareWithContextAndArgsToString()
         {
             var response = await _client.GetAsync("api/comments/contextandargstostring/1");
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
-        }
-
-        [Fact]
-        public async Task CanProxyMiddlewareWithArgsToString()
-        {
-            var response = await _client.GetAsync("api/comments/argstostring/1");
-            response.EnsureSuccessStatusCode();
-
-            var responseString = await response.Content.ReadAsStringAsync();
-            Assert.Contains("id labore ex et quam laborum", JObject.Parse(responseString).Value<string>("name"));
-        }
-
-        [Fact]
-        public async Task CanProxyMiddlewareWithEmptyToString()
-        {
-            var response = await _client.GetAsync("api/comments/emptytostring");
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
