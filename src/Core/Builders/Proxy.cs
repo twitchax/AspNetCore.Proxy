@@ -4,7 +4,7 @@ using AspNetCore.Proxy.Options;
 
 namespace AspNetCore.Proxy.Builders
 {
-    public interface IProxyBuilder : IBuilder<IProxyBuilder, ProxyDefinition>
+    public interface IProxyBuilder : IBuilder<IProxyBuilder, Proxy>
     {
         IProxyBuilder WithRoute(string route);
 
@@ -42,12 +42,12 @@ namespace AspNetCore.Proxy.Builders
                 .UseWs(_wsProxyBuilder?.New());
         }
         
-        public ProxyDefinition Build()
+        public Proxy Build()
         {
             if(_httpProxyBuilder == null && _wsProxyBuilder == null)
                 throw new Exception($"At least one endpoint must be defined with `{nameof(UseHttp)}` or `{nameof(UseWs)}`.");
 
-            return new ProxyDefinition(
+            return new Proxy(
                 _route,
                 _httpProxyBuilder?.Build(),
                 _wsProxyBuilder?.Build());
@@ -105,13 +105,13 @@ namespace AspNetCore.Proxy.Builders
         }
     }
 
-    public class ProxyDefinition
+    public class Proxy
     {
         public string Route { get; internal set; }
         public HttpProxy HttpProxy { get; internal set; }
         public WsProxy WsProxy { get; internal set; }
 
-        public ProxyDefinition(string route, HttpProxy httpProxy, WsProxy wsProxy)
+        public Proxy(string route, HttpProxy httpProxy, WsProxy wsProxy)
         {
             Route = route;
             HttpProxy = httpProxy;

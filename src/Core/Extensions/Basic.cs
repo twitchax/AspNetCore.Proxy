@@ -210,7 +210,7 @@ namespace AspNetCore.Proxy.Extensions
             return controller.HttpContext.ExecuteProxyOperationAsync(proxy);
         }
 
-        public static Task ProxyAsync(this ControllerBase controller, ProxyDefinition proxy)
+        public static Task ProxyAsync(this ControllerBase controller, Builders.Proxy proxy)
         {
             return controller.HttpContext.ExecuteProxyOperationAsync(proxy);
         }
@@ -241,7 +241,7 @@ namespace AspNetCore.Proxy.Extensions
 
         #region Extension Helpers
 
-        internal static Task ExecuteProxyOperationAsync(this HttpContext context, ProxyDefinition proxy)
+        internal static Task ExecuteProxyOperationAsync(this HttpContext context, Builders.Proxy proxy)
         {
             if(context.WebSockets.IsWebSocketRequest && proxy.WsProxy != null)
                 return context.ExecuteWsProxyOperationAsync(proxy.WsProxy);

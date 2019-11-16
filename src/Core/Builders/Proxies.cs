@@ -62,16 +62,16 @@ namespace AspNetCore.Proxy.Builders
         }
     }
 
-    public class Proxies : IEnumerable<ProxyDefinition>
+    public class Proxies : IEnumerable<Proxy>
     {
-        private IList<ProxyDefinition> _proxies;
+        private IList<Proxy> _proxies;
 
-        public Proxies(IEnumerable<ProxyDefinition> proxies)
+        public Proxies(IEnumerable<Proxy> proxies)
         {
             _proxies = proxies.ToList();
         }
 
-        public IEnumerator<ProxyDefinition> GetEnumerator() => _proxies.GetEnumerator();
+        public IEnumerator<Proxy> GetEnumerator() => _proxies.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => _proxies.GetEnumerator();
     }
 }
