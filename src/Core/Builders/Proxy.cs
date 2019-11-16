@@ -13,7 +13,7 @@ namespace AspNetCore.Proxy.Builders
         IProxyBuilder UseHttp(EndpointComputerToValueTask endpointComputer, Action<IHttpProxyOptionsBuilder> builderAction = null);
         IProxyBuilder UseHttp(Action<IHttpProxyBuilder> builderAction);
         IProxyBuilder UseHttp(IHttpProxyBuilder builder);
-
+        
         IProxyBuilder UseWs(string endpoint, Action<IWsProxyOptionsBuilder> builderAction = null);
         IProxyBuilder UseWs(EndpointComputerToString endpointComputer, Action<IWsProxyOptionsBuilder> builderAction = null);
         IProxyBuilder UseWs(EndpointComputerToValueTask endpointComputer, Action<IWsProxyOptionsBuilder> builderAction = null);
@@ -107,9 +107,9 @@ namespace AspNetCore.Proxy.Builders
 
     public class ProxyDefinition
     {
-        public string Route { get; private set; }
-        public HttpProxy HttpProxy { get; private set; }
-        public WsProxy WsProxy { get; private set; }
+        public string Route { get; internal set; }
+        public HttpProxy HttpProxy { get; internal set; }
+        public WsProxy WsProxy { get; internal set; }
 
         public ProxyDefinition(string route, HttpProxy httpProxy, WsProxy wsProxy)
         {

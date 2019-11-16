@@ -71,8 +71,8 @@ namespace AspNetCore.Proxy.Builders
 
     public class WsProxy
     {
-        public EndpointComputerToValueTask EndpointComputer { get; private set; }
-        public WsProxyOptions Options { get; private set; }
+        public EndpointComputerToValueTask EndpointComputer { get; internal set; }
+        public WsProxyOptions Options { get; internal set; }
 
         internal WsProxy(EndpointComputerToValueTask endpointComputer, WsProxyOptions options)
         {

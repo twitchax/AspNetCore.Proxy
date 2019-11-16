@@ -40,7 +40,7 @@ namespace AspNetCore.Proxy.Extensions
 
         public static IApplicationBuilder UseProxies(this IApplicationBuilder app, Action<IProxiesBuilder> builderAction)
         {
-            // TODO: Could eventually make use of `UseEndpoints` in ASP.NET Core 3.
+            // TODO: Could make use of `UseEndpoints` in ASP.NET Core 3?
             app.UseRouter(builder => {
                 var proxiesBuilder = ProxiesBuilder.Instance;
                 builderAction(proxiesBuilder);
@@ -72,57 +72,119 @@ namespace AspNetCore.Proxy.Extensions
             builderAction(proxyBuilder);
             var proxy = proxyBuilder.Build();
 
-            app.Run(context =>
-            {
-                return context.ExecuteProxyOperationAsync(proxy);
-            });
+            var oldHttpEndpointComputer = proxy.HttpProxy?.EndpointComputer.Clone() as EndpointComputerToValueTask;
+            var oldWsEndpointComputer = proxy.WsProxy?.EndpointComputer.Clone() as EndpointComputerToValueTask;
+
+            if(oldHttpEndpointComputer != null)
+                proxy.HttpProxy.EndpointComputer = GetRunProxyComputer(oldHttpEndpointComputer);
+            if(oldWsEndpointComputer != null)
+                proxy.WsProxy.EndpointComputer = GetRunProxyComputer(oldWsEndpointComputer);
+                
+            app.Run(context => context.ExecuteProxyOperationAsync(proxy));
         }
 
-        public static void RunProxy(this IApplicationBuilder app, string httpEndpoint, string wsEndpoint, Action<IHttpProxyOptionsBuilder> httpBuilderAction = null, Action<IWsProxyOptionsBuilder> wsBuilderAction = null)
+        public static void RunProxy(
+            this IApplicationBuilder app, 
+            EndpointComputerToValueTask httpEndpointComputer,
+            EndpointComputerToValueTask wsEndpointComputer, 
+            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null, 
+            Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null)
         {
-            var httpOptionsBuilder = HttpProxyOptionsBuilder.Instance;
-            httpBuilderAction?.Invoke(httpOptionsBuilder);
-
-            var wsOptionsBuilder = WsProxyOptionsBuilder.Instance;
-            wsBuilderAction?.Invoke(wsOptionsBuilder);
-
-            var httpProxy = new HttpProxy((context, args) => new ValueTask<string>($"{httpEndpoint}{context.Request.Path}"), httpOptionsBuilder.Build());
-            var wsProxy = new WsProxy((context, args) => new ValueTask<string>($"{wsEndpoint}{context.Request.Path}"), wsOptionsBuilder.Build());
-
-            app.Run(context =>
-            {
-                if(context.WebSockets.IsWebSocketRequest)
-                    return context.ExecuteWsProxyOperationAsync(wsProxy);
-
-                return context.ExecuteHttpProxyOperationAsync(httpProxy);
-            });
+            app.RunProxy(builder => builder
+                .UseHttp(httpBuilder => httpBuilder
+                    .WithEndpoint(httpEndpointComputer)
+                    .WithOptions(httpBuilderOptionsAction)
+                )
+                .UseWs(wsBuilder => wsBuilder
+                    .WithEndpoint(wsEndpointComputer)
+                    .WithOptions(wsBuilderOptionsAction)
+                )
+            );
         }
 
-        public static void RunHttpProxy(this IApplicationBuilder app, string httpEndpoint, Action<IHttpProxyOptionsBuilder> builderAction = null)
+        public static void RunProxy(
+            this IApplicationBuilder app, 
+            EndpointComputerToString httpEndpointComputer,
+            EndpointComputerToString wsEndpointComputer, 
+            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null, 
+            Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null)
         {
-            var optionsBuilder = HttpProxyOptionsBuilder.Instance;
-            builderAction?.Invoke(optionsBuilder);
-
-            var httpProxy = new HttpProxy((context, args) => new ValueTask<string>($"{httpEndpoint}{context.Request.Path}"), optionsBuilder.Build());
-
-            app.Run(context =>
-            {
-                return context.ExecuteHttpProxyOperationAsync(httpProxy);
-            });
+            app.RunProxy(builder => builder
+                .UseHttp(httpBuilder => httpBuilder
+                    .WithEndpoint(httpEndpointComputer)
+                    .WithOptions(httpBuilderOptionsAction)
+                )
+                .UseWs(wsBuilder => wsBuilder
+                    .WithEndpoint(wsEndpointComputer)
+                    .WithOptions(wsBuilderOptionsAction)
+                )
+            );
         }
 
-        public static void RunWsProxy(this IApplicationBuilder app, string wsEndpoint, Action<IWsProxyOptionsBuilder> builderAction = null)
+        public static void RunProxy(
+            this IApplicationBuilder app, 
+            string httpEndpoint,
+            string wsEndpoint, 
+            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null, 
+            Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null)
         {
-            var optionsBuilder = WsProxyOptionsBuilder.Instance;
-            builderAction?.Invoke(optionsBuilder);
-
-            var wsProxy = new WsProxy((context, args) => new ValueTask<string>($"{wsEndpoint}{context.Request.Path}"), optionsBuilder.Build());
-
-            app.Run(context =>
-            {
-                return context.ExecuteWsProxyOperationAsync(wsProxy);
-            });
+            app.RunProxy(builder => builder
+                .UseHttp(httpBuilder => httpBuilder
+                    .WithEndpoint(httpEndpoint)
+                    .WithOptions(httpBuilderOptionsAction)
+                )
+                .UseWs(wsBuilder => wsBuilder
+                    .WithEndpoint(wsEndpoint)
+                    .WithOptions(wsBuilderOptionsAction)
+                )
+            );
         }
+
+        public static void RunHttpProxy(this IApplicationBuilder app, Action<IHttpProxyBuilder> httpBuilderOptionsAction) =>
+            app.RunProxy(builder => builder
+                .UseHttp(httpBuilderOptionsAction)
+            );
+
+        public static void RunHttpProxy(this IApplicationBuilder app, EndpointComputerToValueTask httpEndpointComputer, Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null) =>
+            app.RunHttpProxy(builder => builder
+                .WithEndpoint(httpEndpointComputer)
+                .WithOptions(httpBuilderOptionsAction)
+            );
+
+        public static void RunHttpProxy(this IApplicationBuilder app, EndpointComputerToString httpEndpointComputer, Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null) =>
+            app.RunHttpProxy(builder => builder
+                .WithEndpoint(httpEndpointComputer)
+                .WithOptions(httpBuilderOptionsAction)
+            );
+
+        public static void RunHttpProxy(this IApplicationBuilder app, string httpEndpoint, Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null) =>
+            app.RunHttpProxy(builder => builder
+                .WithEndpoint(httpEndpoint)
+                .WithOptions(httpBuilderOptionsAction)
+            );
+
+        public static void RunWsProxy(this IApplicationBuilder app, Action<IWsProxyBuilder> wsBuilderOptionsAction) =>
+            app.RunProxy(builder => builder
+                .UseWs(wsBuilderOptionsAction)
+            );
+
+        public static void RunWsProxy(this IApplicationBuilder app, EndpointComputerToValueTask wsEndpointComputer, Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null) =>
+            app.RunWsProxy(builder => builder
+                .WithEndpoint(wsEndpointComputer)
+                .WithOptions(wsBuilderOptionsAction)
+            );
+
+        public static void RunWsProxy(this IApplicationBuilder app, EndpointComputerToString wsEndpointComputer, Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null) => 
+            app.RunWsProxy(builder => builder
+                .WithEndpoint(wsEndpointComputer)
+                .WithOptions(wsBuilderOptionsAction)
+            );
+
+        public static void RunWsProxy(this IApplicationBuilder app, string wsEndpoint, Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null) =>
+            app.RunWsProxy(builder => builder
+                .WithEndpoint(wsEndpoint)
+                .WithOptions(wsBuilderOptionsAction)
+            );
 
         #endregion
 
@@ -143,8 +205,9 @@ namespace AspNetCore.Proxy.Extensions
         {
             var proxyBuilder = ProxyBuilder.Instance;
             builderAction(proxyBuilder);
+            var proxy = proxyBuilder.Build();
 
-            return controller.HttpContext.ExecuteProxyOperationAsync(proxyBuilder.Build());
+            return controller.HttpContext.ExecuteProxyOperationAsync(proxy);
         }
 
         public static Task ProxyAsync(this ControllerBase controller, ProxyDefinition proxy)
@@ -191,6 +254,15 @@ namespace AspNetCore.Proxy.Extensions
 
         internal static string GetEndpointFromComputer(this HttpContext context, EndpointComputerToString computer) => computer(context, context.GetRouteData().Values);
         internal static ValueTask<string> GetEndpointFromComputerAsync(this HttpContext context, EndpointComputerToValueTask computer) => computer(context, context.GetRouteData().Values);
+
+        internal static EndpointComputerToValueTask GetRunProxyComputer(EndpointComputerToValueTask endpointComputer)
+        {
+            return async (context, args) => 
+            {
+                var endpoint = await GetEndpointFromComputerAsync(context, endpointComputer);
+                return $"{endpoint}{context.Request.Path}";
+            };
+        }
 
         #endregion
     }

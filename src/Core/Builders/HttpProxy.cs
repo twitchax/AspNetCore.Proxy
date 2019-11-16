@@ -70,8 +70,8 @@ namespace AspNetCore.Proxy.Builders
 
     public class HttpProxy
     {
-        public EndpointComputerToValueTask EndpointComputer { get; private set; }
-        public HttpProxyOptions Options { get; private set; }
+        public EndpointComputerToValueTask EndpointComputer { get; internal set; }
+        public HttpProxyOptions Options { get; internal set; }
 
         internal HttpProxy(EndpointComputerToValueTask endpointComputer, HttpProxyOptions options)
         {
