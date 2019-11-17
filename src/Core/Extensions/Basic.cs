@@ -68,7 +68,7 @@ namespace AspNetCore.Proxy.Extensions
         /// <param name="options">Extra options to apply during proxying.</param>
         public static void RunProxy(this IApplicationBuilder app, Action<IProxyBuilder> builderAction)
         {
-            var proxyBuilder = ProxyBuilder.Instance;
+            var proxyBuilder = ProxyBuilder.Instance.WithIsRouteless(true);
             builderAction(proxyBuilder);
             var proxy = proxyBuilder.Build();
 
@@ -190,50 +190,23 @@ namespace AspNetCore.Proxy.Extensions
 
         #region Controller Extensions
 
-        /// <summary>
-        /// A <see cref="Controller"/> extension method which allows for a single, simple call to use a proxy
-        /// in existing controllers.
-        /// </summary>
-        /// <param name="controller">The calling controller.</param>
-        /// <param name="uri">The URI to proxy.</param>
-        /// <param name="options">Extra options to apply during proxying.</param>
-        /// <returns>
-        /// A <see cref="Task"/> which, upon completion, has proxied the specified address and copied the response contents into
-        /// the response for the <see cref="HttpContext"/>.
-        /// </returns>
-        public static Task ProxyAsync(this ControllerBase controller, Action<IProxyBuilder> builderAction)
+        public static Task ProxyAsync(this ControllerBase controller, string httpEndpoint, string wsEndpoint, HttpProxyOptions httpProxyOptions = null, WsProxyOptions wsProxyOptions = null)
         {
-            var proxyBuilder = ProxyBuilder.Instance;
-            builderAction(proxyBuilder);
-            var proxy = proxyBuilder.Build();
-
+            var httpProxy = new HttpProxy((c, a) => new ValueTask<string>(httpEndpoint), httpProxyOptions);
+            var wsProxy = new WsProxy((c, a) => new ValueTask<string>(wsEndpoint), wsProxyOptions);
+            var proxy = new Builders.Proxy(null, httpProxy, wsProxy);
             return controller.HttpContext.ExecuteProxyOperationAsync(proxy);
         }
 
-        public static Task ProxyAsync(this ControllerBase controller, Builders.Proxy proxy)
+        public static Task HttpProxyAsync(this ControllerBase controller, string httpEndpoint, HttpProxyOptions httpProxyOptions = null)
         {
-            return controller.HttpContext.ExecuteProxyOperationAsync(proxy);
-        }
-
-        public static Task HttpProxyAsync(this ControllerBase controller, HttpProxy httpProxy)
-        {
+            var httpProxy = new HttpProxy((c, a) => new ValueTask<string>(httpEndpoint), httpProxyOptions);
             return controller.HttpContext.ExecuteHttpProxyOperationAsync(httpProxy);
         }
 
-        public static Task HttpProxyAsync(this ControllerBase controller, string endpoint, HttpProxyOptions options = null)
+        public static Task WsProxyAsync(this ControllerBase controller, string wsEndpoint, WsProxyOptions wsProxyOptions = null)
         {
-            var httpProxy = new HttpProxy((c, a) => new ValueTask<string>(endpoint), options);
-            return controller.HttpContext.ExecuteHttpProxyOperationAsync(httpProxy);
-        }
-
-        public static Task WsProxyAsync(this ControllerBase controller, WsProxy wsProxy)
-        {
-            return controller.HttpContext.ExecuteWsProxyOperationAsync(wsProxy);
-        }
-
-        public static Task WsProxyAsync(this ControllerBase controller, string endpoint, WsProxyOptions options = null)
-        {
-            var wsProxy = new WsProxy((c, a) => new ValueTask<string>(endpoint), options);
+            var wsProxy = new WsProxy((c, a) => new ValueTask<string>(wsEndpoint), wsProxyOptions);
             return controller.HttpContext.ExecuteWsProxyOperationAsync(wsProxy);
         }
 
@@ -241,15 +214,26 @@ namespace AspNetCore.Proxy.Extensions
 
         #region Extension Helpers
 
-        internal static Task ExecuteProxyOperationAsync(this HttpContext context, Builders.Proxy proxy)
+        internal static async Task ExecuteProxyOperationAsync(this HttpContext context, Builders.Proxy proxy)
         {
-            if(context.WebSockets.IsWebSocketRequest && proxy.WsProxy != null)
-                return context.ExecuteWsProxyOperationAsync(proxy.WsProxy);
+            var isWebSocket = context.WebSockets.IsWebSocketRequest;
+            if(isWebSocket && proxy.WsProxy != null)
+            {
+                await context.ExecuteWsProxyOperationAsync(proxy.WsProxy).ConfigureAwait(false);
+                return;
+            }
             
-            if(!context.WebSockets.IsWebSocketRequest && proxy.HttpProxy != null)
-                return context.ExecuteHttpProxyOperationAsync(proxy.HttpProxy);
+            if(!isWebSocket && proxy.HttpProxy != null)
+            {
+                await context.ExecuteHttpProxyOperationAsync(proxy.HttpProxy).ConfigureAwait(false);
+                return;
+            }
 
-            throw new Exception("This should never happen due to `Build` calls on ProxyBuilders.");
+            var requestType = isWebSocket ? "WebSokcet" : "HTTP(S)";
+
+            // If the failures are not caught, then write a generic response.
+            context.Response.StatusCode = 502 /* BAD GATEWAY */;
+            await context.Response.WriteAsync($"Request could not be proxied.\n\nThe {requestType} request cannot be proxied because the underlying proxy definition does not have a definition of that type.").ConfigureAwait(false);
         }
 
         internal static string GetEndpointFromComputer(this HttpContext context, EndpointComputerToString computer) => computer(context, context.GetRouteData().Values);
@@ -259,7 +243,7 @@ namespace AspNetCore.Proxy.Extensions
         {
             return async (context, args) => 
             {
-                var endpoint = await GetEndpointFromComputerAsync(context, endpointComputer);
+                var endpoint = await GetEndpointFromComputerAsync(context, endpointComputer).ConfigureAwait(false);
                 return $"{endpoint}{context.Request.Path}";
             };
         }

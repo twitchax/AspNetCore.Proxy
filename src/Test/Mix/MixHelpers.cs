@@ -49,21 +49,6 @@ namespace AspNetCore.Proxy.Tests
                 {
                     app.UseWebSockets();
 
-                    app.UseRouting();
-                    app.UseEndpoints(endpoints =>
-                    {
-                        endpoints.Map("my/pattern/{lol}", context =>
-                        {
-                            var endpoint = context.GetEndpoint();
-
-                            var values = context.Request.RouteValues;
-
-                            Console.WriteLine("here");
-
-                            return Task.CompletedTask;
-                        });
-                    });
-
                     app.RunProxy(proxy => proxy
                         .UseHttp((context, args) =>
                         {

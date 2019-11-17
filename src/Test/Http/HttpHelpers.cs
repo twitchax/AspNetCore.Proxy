@@ -63,18 +63,18 @@ namespace AspNetCore.Proxy.Tests
 
         public async Task Invoke(HttpContext httpContext)
         {
-                var r = rand.NextDouble();
+            var r = rand.NextDouble();
 
-                if(r < .33)
-                {
-                    httpContext.Connection.RemoteIpAddress = IPAddress.Parse("127.168.1.31");
-                    httpContext.Connection.LocalIpAddress = IPAddress.Parse("127.168.1.32");
-                }
-                else if (r < .66)
-                {
-                    httpContext.Connection.RemoteIpAddress = IPAddress.Parse("2001:db8:85a3:8d3:1319:8a2e:370:7348");
-                    httpContext.Connection.LocalIpAddress = IPAddress.Parse("2001:db8:85a3:8d3:1319:8a2e:370:7349");
-                }
+            if(r < .33)
+            {
+                httpContext.Connection.RemoteIpAddress = IPAddress.Parse("127.168.1.31");
+                httpContext.Connection.LocalIpAddress = IPAddress.Parse("127.168.1.32");
+            }
+            else if (r < .66)
+            {
+                httpContext.Connection.RemoteIpAddress = IPAddress.Parse("2001:db8:85a3:8d3:1319:8a2e:370:7348");
+                httpContext.Connection.LocalIpAddress = IPAddress.Parse("2001:db8:85a3:8d3:1319:8a2e:370:7349");
+            }
 
             await this.next(httpContext);
         }
@@ -85,24 +85,19 @@ namespace AspNetCore.Proxy.Tests
         [Route("api/posts")]
         public Task ProxyPostRequest()
         {
-            // Take the builder route here for code coverage purposes.
-            return this.ProxyAsync(proxy => proxy.UseHttp("https://jsonplaceholder.typicode.com/posts"));
+            return this.HttpProxyAsync("https://jsonplaceholder.typicode.com/posts");
         }
 
         [Route("api/catchall/{**rest}")]
         public Task ProxyCatchAll(string rest)
         {
-            // Take the built builder route here for code coverage purposes.
-            var proxy = ProxyBuilder.Instance.UseHttp($"https://jsonplaceholder.typicode.com/{rest}").Build();
-            return this.ProxyAsync(proxy);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/{rest}");
         }
 
         [Route("api/controller/posts/{postId}")]
         public Task GetPosts(int postId)
         {
-            // Take the http proxy builder route for code coverage purposes.
-            var httpProxy = HttpProxyBuilder.Instance.WithEndpoint($"https://jsonplaceholder.typicode.com/posts/{postId}").Build();
-            return this.HttpProxyAsync(httpProxy);
+            return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
         }
 
         [Route("api/controller/intercept/{postId}")]

@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using AspNetCore.Proxy.Options;
 
 namespace AspNetCore.Proxy.Builders
@@ -23,6 +22,7 @@ namespace AspNetCore.Proxy.Builders
 
     public class ProxyBuilder : IProxyBuilder
     {
+        private bool _isRouteless = false;
         private string _route;
         private IHttpProxyBuilder _httpProxyBuilder;
         private IWsProxyBuilder _wsProxyBuilder;
@@ -32,11 +32,18 @@ namespace AspNetCore.Proxy.Builders
 
         }
 
+        internal IProxyBuilder WithIsRouteless(bool isRouteless)
+        {
+            _isRouteless = isRouteless;
+            return this;
+        }
+
         public static ProxyBuilder Instance => new ProxyBuilder();
 
         public IProxyBuilder New()
         {
             return Instance
+                .WithIsRouteless(_isRouteless)
                 .WithRoute(_route)
                 .UseHttp(_httpProxyBuilder?.New())
                 .UseWs(_wsProxyBuilder?.New());
@@ -55,6 +62,9 @@ namespace AspNetCore.Proxy.Builders
 
         public IProxyBuilder WithRoute(string route)
         {
+            if(_isRouteless)
+                throw new Exception("This is a `routeless` Proxy builder (i.e., likely used with `RunProxy`): adding a route in this context is a no-op that should be removed.");
+            
             _route = route;
 
             return this;

@@ -22,8 +22,7 @@ namespace AspNetCore.Proxy.Tests
         [Route("api/ws2")]
         public Task ProxyWsControllerWithWsProxy()
         {
-            var wsProxy = WsProxyBuilder.Instance.WithEndpoint("ws://localhost:5002/").Build();
-            return this.WsProxyAsync(wsProxy);
+            return this.WsProxyAsync("ws://localhost:5002/");
         }
     }
     
