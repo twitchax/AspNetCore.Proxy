@@ -32,13 +32,13 @@ namespace AspNetCore.Proxy.Builders
 
         }
 
+        public static ProxyBuilder Instance => new ProxyBuilder();
+
         internal IProxyBuilder WithIsRouteless(bool isRouteless)
         {
             _isRouteless = isRouteless;
             return this;
         }
-
-        public static ProxyBuilder Instance => new ProxyBuilder();
 
         public IProxyBuilder New()
         {

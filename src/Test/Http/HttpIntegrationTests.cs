@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.WebSockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -12,12 +15,12 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public class HttpUnitTests
+    public class HttpIntegrationTests
     {
         private readonly TestServer _server;
         private readonly HttpClient _client;
 
-        public HttpUnitTests()
+        public HttpIntegrationTests()
         {
             _server = new TestServer(new WebHostBuilder().UseStartup<Startup>());
             _client = _server.CreateClient();

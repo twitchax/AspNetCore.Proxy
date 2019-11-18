@@ -25,12 +25,12 @@ namespace AspNetCore.Proxy.Tests
         }
     }
 
-    public class MixUnitTests : IClassFixture<MixServerFixture>
+    public class MixIntegrationTests : IClassFixture<MixServerFixture>
     {
         private readonly ClientWebSocket _wsClient;
         private readonly HttpClient _httpClient;
 
-        public MixUnitTests(MixServerFixture fixture)
+        public MixIntegrationTests(MixServerFixture fixture)
         {
             _wsClient = new ClientWebSocket();
             _wsClient.Options.AddSubProtocol(Extensions.SupportedProtocol);
@@ -82,6 +82,19 @@ namespace AspNetCore.Proxy.Tests
             
             var response = await _httpClient.PostAsync("http://localhost:5007/at/some/other/path", new StringContent(send1));
             Assert.Equal(expected1, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task CanFailWhenWebSocketNotDefined()
+        {
+            var message = "The server returned status code '502' when status code '101' was expected.";
+
+            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() => 
+            {
+                return _wsClient.ConnectAsync(new Uri("ws://localhost:5007/to/random/path"), CancellationToken.None);
+            });
+
+            Assert.Equal(message, exception.Message);
         }
 
         [Fact]

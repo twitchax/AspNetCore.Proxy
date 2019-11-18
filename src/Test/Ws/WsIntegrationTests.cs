@@ -24,11 +24,11 @@ namespace AspNetCore.Proxy.Tests
         }
     }
 
-    public class WsUnitTests : IClassFixture<WsServerFixture>
+    public class WsIntegrationTests : IClassFixture<WsServerFixture>
     {
         public readonly ClientWebSocket _client;
 
-        public WsUnitTests(WsServerFixture fixture)
+        public WsIntegrationTests(WsServerFixture fixture)
         {
             _client = new ClientWebSocket();
             _client.Options.SetRequestHeader("SomeHeader", "SomeValue");

@@ -6,9 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+
+// For unit tests.
+[assembly:InternalsVisibleTo("AspNetCore.Proxy.Tests")]
 
 namespace AspNetCore.Proxy.Extensions
 {
@@ -140,9 +143,9 @@ namespace AspNetCore.Proxy.Extensions
             );
         }
 
-        public static void RunHttpProxy(this IApplicationBuilder app, Action<IHttpProxyBuilder> httpBuilderOptionsAction) =>
+        public static void RunHttpProxy(this IApplicationBuilder app, Action<IHttpProxyBuilder> httpBuilderAction) =>
             app.RunProxy(builder => builder
-                .UseHttp(httpBuilderOptionsAction)
+                .UseHttp(httpBuilderAction)
             );
 
         public static void RunHttpProxy(this IApplicationBuilder app, EndpointComputerToValueTask httpEndpointComputer, Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null) =>
@@ -163,9 +166,9 @@ namespace AspNetCore.Proxy.Extensions
                 .WithOptions(httpBuilderOptionsAction)
             );
 
-        public static void RunWsProxy(this IApplicationBuilder app, Action<IWsProxyBuilder> wsBuilderOptionsAction) =>
+        public static void RunWsProxy(this IApplicationBuilder app, Action<IWsProxyBuilder> wsBuilderAction) =>
             app.RunProxy(builder => builder
-                .UseWs(wsBuilderOptionsAction)
+                .UseWs(wsBuilderAction)
             );
 
         public static void RunWsProxy(this IApplicationBuilder app, EndpointComputerToValueTask wsEndpointComputer, Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null) =>
@@ -236,7 +239,6 @@ namespace AspNetCore.Proxy.Extensions
             await context.Response.WriteAsync($"Request could not be proxied.\n\nThe {requestType} request cannot be proxied because the underlying proxy definition does not have a definition of that type.").ConfigureAwait(false);
         }
 
-        internal static string GetEndpointFromComputer(this HttpContext context, EndpointComputerToString computer) => computer(context, context.GetRouteData().Values);
         internal static ValueTask<string> GetEndpointFromComputerAsync(this HttpContext context, EndpointComputerToValueTask computer) => computer(context, context.GetRouteData().Values);
 
         internal static EndpointComputerToValueTask GetRunProxyComputer(EndpointComputerToValueTask endpointComputer)

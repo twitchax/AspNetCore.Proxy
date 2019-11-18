@@ -72,6 +72,6 @@ namespace AspNetCore.Proxy.Builders
         }
 
         public IEnumerator<Proxy> GetEnumerator() => _proxies.GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => _proxies.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => (_proxies as IList).GetEnumerator();
     }
 }
