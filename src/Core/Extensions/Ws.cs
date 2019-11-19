@@ -34,9 +34,7 @@ namespace AspNetCore.Proxy.Extensions
                 using var socketToEndpoint = new ClientWebSocket();
 
                 foreach (var protocol in context.WebSockets.WebSocketRequestedProtocols)
-                {
                     socketToEndpoint.Options.AddSubProtocol(protocol);
-                }
                 
                 foreach (var headerEntry in context.Request.Headers)
                     if (!Helpers.WebSocketNotForwardedHeaders.Contains(headerEntry.Key, StringComparer.OrdinalIgnoreCase))

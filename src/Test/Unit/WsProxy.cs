@@ -15,7 +15,16 @@ namespace AspNetCore.Proxy.Tests
             var bufferSize = 52978;
 
             var wsProxyOptions = WsProxyOptionsBuilder.Instance.WithBufferSize(bufferSize).New();
-            var wsProxy = WsProxyBuilder.Instance.WithEndpoint(endpoint).WithOptions(wsProxyOptions).New().Build();
+
+            // Exercise methods by calling them multiple times.
+            var wsProxy = WsProxyBuilder.Instance
+                .New()
+                .WithEndpoint(endpoint)
+                .WithOptions(null as Action<IWsProxyOptionsBuilder>)
+                .WithOptions(null as IWsProxyOptionsBuilder)
+                .WithOptions(b => b.New())
+                .WithOptions(wsProxyOptions)
+                .New().Build();
 
             Assert.Equal(endpoint, await wsProxy.EndpointComputer.Invoke(null, null));
             Assert.Equal(52978, wsProxy.Options.BufferSize);
@@ -25,7 +34,7 @@ namespace AspNetCore.Proxy.Tests
         public async Task CanWsProxyBuilderFailOnNullEndpointComputer()
         {
             Assert.ThrowsAny<Exception>(() => {
-                var httpProxy = HttpProxyBuilder.Instance.WithOptions(null as Action<IHttpProxyOptionsBuilder>).New().Build();
+                var wsProxy = WsProxyBuilder.Instance.Build();
             });
         }
     }

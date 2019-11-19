@@ -4,16 +4,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using AspNetCore.Proxy.Extensions;
 
 namespace AspNetCore.Proxy.Tests
 {
-    internal static class MixHelpers
+    internal static class RunProxyHelpers
     {
-        internal static Task RunMixServers(CancellationToken token)
+        internal static Task RunProxyServers(CancellationToken token)
         {
             var proxiedServerTask = WebHost.CreateDefaultBuilder()
                 .SuppressStatusMessages(true)

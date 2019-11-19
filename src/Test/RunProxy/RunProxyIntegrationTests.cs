@@ -9,14 +9,14 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public class MixServerFixture : IDisposable
+    public class RunProxyServerFixture : IDisposable
     {
         private CancellationTokenSource _source;
 
-        public MixServerFixture()
+        public RunProxyServerFixture()
         {
             _source = new CancellationTokenSource();
-            MixHelpers.RunMixServers(_source.Token);
+            RunProxyHelpers.RunProxyServers(_source.Token);
         }
 
         public void Dispose()
@@ -25,12 +25,12 @@ namespace AspNetCore.Proxy.Tests
         }
     }
 
-    public class MixIntegrationTests : IClassFixture<MixServerFixture>
+    public class RunProxyIntegrationTests : IClassFixture<RunProxyServerFixture>
     {
         private readonly ClientWebSocket _wsClient;
         private readonly HttpClient _httpClient;
 
-        public MixIntegrationTests(MixServerFixture fixture)
+        public RunProxyIntegrationTests(RunProxyServerFixture fixture)
         {
             _wsClient = new ClientWebSocket();
             _wsClient.Options.AddSubProtocol(Extensions.SupportedProtocol);

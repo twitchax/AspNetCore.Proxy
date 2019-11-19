@@ -34,8 +34,9 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanProxyBuilderFailWithoutHttpOrWsProxy()
         {
-            Assert.ThrowsAny<Exception>(() => {
-                ProxyBuilder.Instance.Build();
+            Assert.ThrowsAny<Exception>(() => 
+            {
+                ProxyBuilder.Instance.New().Build();
             });
         }
 
