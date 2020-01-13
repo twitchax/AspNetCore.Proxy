@@ -6,7 +6,7 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public partial class UnitTests
+    public class HttpProxy
     {
         [Fact]
         public async Task CanExerciseHttpProxyBuilder()

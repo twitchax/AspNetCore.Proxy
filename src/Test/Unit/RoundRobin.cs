@@ -6,7 +6,7 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public partial class UnitTests
+    public class RoundRobinTests
     {
         [Fact]
         public async Task CanExerciseRoundRobin()

@@ -6,7 +6,7 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public partial class UnitTests
+    public class WsProxy
     {
         [Fact]
         public async Task CanExerciseWsProxyBuilder()
@@ -31,7 +31,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanWsProxyBuilderFailOnNullEndpointComputer()
+        public void CanWsProxyBuilderFailOnNullEndpointComputer()
         {
             Assert.ThrowsAny<Exception>(() => {
                 var wsProxy = WsProxyBuilder.Instance.Build();

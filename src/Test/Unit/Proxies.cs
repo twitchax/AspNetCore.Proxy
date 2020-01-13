@@ -7,7 +7,7 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public partial class UnitTests
+    public class Proxies
     {
         [Fact]
         public async Task CanEnumerateProxies()

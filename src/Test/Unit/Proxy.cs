@@ -9,7 +9,7 @@ using Xunit;
 
 namespace AspNetCore.Proxy.Tests
 {
-    public partial class UnitTests
+    public class Proxy
     {
         [Fact]
         public async Task CanExerciseProxyBuilder()
