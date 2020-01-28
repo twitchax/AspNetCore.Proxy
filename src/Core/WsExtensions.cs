@@ -25,10 +25,10 @@ namespace AspNetCore.Proxy
                     if (!Helpers.WebSocketNotForwardedHeaders.Contains(headerEntry.Key, StringComparer.OrdinalIgnoreCase))
                         socketToEndpoint.Options.SetRequestHeader(headerEntry.Key, headerEntry.Value);
 
-                // TODO: Add a proxy options for keep alive and set it here.
-                //client.Options.KeepAliveInterval = proxyService.Options.WebSocketKeepAliveInterval.Value;
-
-                // TODO make a proxy option action to edit the web socket options.
+                if (options?.BeforeWebSocketConnect != null)
+                {
+                    await options.BeforeWebSocketConnect(context, socketToEndpoint.Options);
+                }
 
                 await socketToEndpoint.ConnectAsync(new Uri(uri), context.RequestAborted);
 

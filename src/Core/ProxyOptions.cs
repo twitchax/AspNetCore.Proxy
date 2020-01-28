@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
@@ -60,6 +61,15 @@ namespace AspNetCore.Proxy
         /// The <see cref="HttpResponseMessage"/> can be edited before the response is written to the client.
         /// </value>
         public Func<HttpContext, HttpResponseMessage, Task> AfterReceive { get; set; }
+
+        /// <summary>
+        /// Gets or sets the BeforeWebSocketConnect, which is used before a web sockets get proxied so the web socket options can be modified.
+        /// </summary>
+        /// <value>
+        /// An <see cref="Func{HttpContext, ClientWebSocketOptions, Task}"/> that is invoked before the web socket proxy connects to the remote endpoint.
+        /// The <see cref="ClientWebSocketOptions"/> can be edited before the web socket connection is established.
+        /// </value>
+        public Func<HttpContext, ClientWebSocketOptions, Task> BeforeWebSocketConnect { get; set; }
         
         /// <summary>
         /// The default constructor.
@@ -72,7 +82,8 @@ namespace AspNetCore.Proxy
             Func<HttpContext, Exception, Task> handleFailure,
             Func<HttpContext, Task<bool>> intercept,
             Func<HttpContext, HttpRequestMessage, Task> beforeSend,
-            Func<HttpContext, HttpResponseMessage, Task> afterReceive)
+            Func<HttpContext, HttpResponseMessage, Task> afterReceive,
+            Func<HttpContext, ClientWebSocketOptions, Task> beforeWebSocketConnect)
         {
             ShouldAddForwardedHeaders = shouldAddForwardedHeaders;
             HttpClientName = httpClientName;
@@ -80,6 +91,7 @@ namespace AspNetCore.Proxy
             Intercept = intercept;
             BeforeSend = beforeSend;
             AfterReceive = afterReceive;
+            BeforeWebSocketConnect = beforeWebSocketConnect;
         }
 
         private static ProxyOptions CreateFrom(
@@ -89,7 +101,8 @@ namespace AspNetCore.Proxy
             Func<HttpContext, Exception, Task> handleFailure = null,
             Func<HttpContext, Task<bool>> intercept = null,
             Func<HttpContext, HttpRequestMessage, Task> beforeSend = null,
-            Func<HttpContext, HttpResponseMessage, Task> afterReceive = null)
+            Func<HttpContext, HttpResponseMessage, Task> afterReceive = null,
+            Func<HttpContext, ClientWebSocketOptions, Task> beforeWebSocketConnect = null)
         {
             return new ProxyOptions(
                 shouldAddForwardedHeaders ?? old.ShouldAddForwardedHeaders,
@@ -97,7 +110,8 @@ namespace AspNetCore.Proxy
                 handleFailure ?? old.HandleFailure,
                 intercept ?? old.Intercept,
                 beforeSend ?? old.BeforeSend,
-                afterReceive ?? old.AfterReceive);
+                afterReceive ?? old.AfterReceive,
+                beforeWebSocketConnect ?? old.BeforeWebSocketConnect);
         }
 
         /// <summary>
@@ -147,5 +161,12 @@ namespace AspNetCore.Proxy
         /// <param name="afterReceive"></param>
         /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
         public ProxyOptions WithAfterReceive(Func<HttpContext, HttpResponseMessage, Task> afterReceive) => CreateFrom(this, afterReceive: afterReceive);
+
+        /// <summary>
+        /// Sets the <see cref="BeforeWebSocketConnect"/> property to a cloned instance of this <see cref="ProxyOptions"/>.
+        /// </summary>
+        /// <param name="beforeWebSocketConnect"></param>
+        /// <returns>A new instance of <see cref="ProxyOptions"/> with the new value for the property.</returns>
+        public ProxyOptions WithBeforeWebSocketConnect(Func<HttpContext, ClientWebSocketOptions, Task> beforeWebSocketConnect) => CreateFrom(this, beforeWebSocketConnect: beforeWebSocketConnect);
     }
 }
