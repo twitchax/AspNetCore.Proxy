@@ -64,18 +64,17 @@ namespace AspNetCore.Proxy.Options
     public class HttpProxyOptionsBuilder : IHttpProxyOptionsBuilder
     {
         private bool _shouldAddForwardedHeaders = true;
-        private string _httpClientName = null;
+        private string _httpClientName;
         private Func<HttpContext, ValueTask<bool>> _intercept;
         private Func<HttpContext, HttpRequestMessage, Task> _beforeSend;
         private Func<HttpContext, HttpResponseMessage, Task> _afterReceive;
         private Func<HttpContext, Exception, Task> _handleFailure;
-        
+
         /// <summary>
         /// The default constructor.
         /// </summary>
         private HttpProxyOptionsBuilder()
         {
-
         }
 
         /// <summary>
@@ -198,7 +197,7 @@ namespace AspNetCore.Proxy.Options
         /// Instructs the proxy operation to add `Forwarded` and `X-Forwarded-*` headers.
         /// Default behavior is `true`.
         /// </value>
-        public bool ShouldAddForwardedHeaders { get; private set; } = true;
+        public bool ShouldAddForwardedHeaders { get; } = true;
 
         /// <summary>
         /// HttpClientName property.
@@ -207,7 +206,7 @@ namespace AspNetCore.Proxy.Options
         /// Overrides the default <see cref="HttpClient"/> used for making the proxy call.
         /// Default is `null`.
         /// </value>
-        public string HttpClientName { get; private set; } = null;
+        public string HttpClientName { get; }
 
         /// <summary>
         /// Intercept property.
@@ -216,7 +215,7 @@ namespace AspNetCore.Proxy.Options
         /// A <see cref="Func{HttpContext, Task}"/> that is invoked upon a call.
         /// The result should be `true` if the call is intercepted and **not** meant to be forwarded.
         /// </value>
-        public Func<HttpContext, ValueTask<bool>> Intercept { get; private set; }
+        public Func<HttpContext, ValueTask<bool>> Intercept { get; }
 
         /// <summary>
         /// BeforeSend property.
@@ -225,7 +224,7 @@ namespace AspNetCore.Proxy.Options
         /// An <see cref="Func{HttpContext, HttpRequestMessage, Task}"/> that is invoked before the call to the remote endpoint.
         /// The <see cref="HttpRequestMessage"/> can be edited before the call.
         /// </value>
-        public Func<HttpContext, HttpRequestMessage, Task> BeforeSend { get; private set; }
+        public Func<HttpContext, HttpRequestMessage, Task> BeforeSend { get; }
 
         /// <summary>
         /// AfterReceive property.
@@ -234,13 +233,13 @@ namespace AspNetCore.Proxy.Options
         /// An <see cref="Func{HttpContext, HttpResponseMessage, Task}"/> that is invoked before the response is written to the client.
         /// The <see cref="HttpResponseMessage"/> can be edited before the response is written to the client.
         /// </value>
-        public Func<HttpContext, HttpResponseMessage, Task> AfterReceive { get; private set; }
+        public Func<HttpContext, HttpResponseMessage, Task> AfterReceive { get; }
 
         /// <summary>
         /// HandleFailure property.
         /// </summary>
         /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
-        public Func<HttpContext, Exception, Task> HandleFailure { get; private set; }
+        public Func<HttpContext, Exception, Task> HandleFailure { get; }
 
         /// <summary>
         /// The constructor.

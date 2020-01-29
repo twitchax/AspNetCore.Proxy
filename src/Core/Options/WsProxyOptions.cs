@@ -33,7 +33,7 @@ namespace AspNetCore.Proxy.Options
         /// <param name="beforeConnect"></param>
         /// <returns>This instance.</returns>
         IWsProxyOptionsBuilder WithBeforeConnect(Func<HttpContext, ClientWebSocketOptions, Task> beforeConnect);
-        
+
         /// <summary>
         /// A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.
         /// </summary>
@@ -51,13 +51,12 @@ namespace AspNetCore.Proxy.Options
         private Func<HttpContext, ValueTask<bool>> _intercept;
         private Func<HttpContext, ClientWebSocketOptions, Task> _beforeConnect;
         private Func<HttpContext, Exception, Task> _handleFailure;
-        
+
         /// <summary>
         /// The default constructor.
         /// </summary>
         private WsProxyOptionsBuilder()
         {
-
         }
 
         /// <summary>
@@ -123,7 +122,7 @@ namespace AspNetCore.Proxy.Options
     /// </summary>
     public class WsProxyOptions
     {
-        public int BufferSize { get; private set; }
+        public int BufferSize { get; }
 
         /// <summary>
         /// Intercept property.
@@ -132,15 +131,15 @@ namespace AspNetCore.Proxy.Options
         /// A <see cref="Func{HttpContext, Task}"/> that is invoked upon a call.
         /// The result should be `true` if the call is intercepted and **not** meant to be forwarded.
         /// </value>
-        public Func<HttpContext, ValueTask<bool>> Intercept { get; private set; }
+        public Func<HttpContext, ValueTask<bool>> Intercept { get; }
 
-        public Func<HttpContext, ClientWebSocketOptions, Task> BeforeConnect { get; private set; }
+        public Func<HttpContext, ClientWebSocketOptions, Task> BeforeConnect { get; }
 
         /// <summary>
         /// HandleFailure property.
         /// </summary>
         /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
-        public Func<HttpContext, Exception, Task> HandleFailure { get; private set; }
+        public Func<HttpContext, Exception, Task> HandleFailure { get; }
 
         /// <summary>
         /// The constructor.

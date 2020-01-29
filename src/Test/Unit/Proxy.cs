@@ -1,10 +1,6 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using AspNetCore.Proxy.Builders;
-using AspNetCore.Proxy.Options;
-using Moq;
 using Xunit;
 
 namespace AspNetCore.Proxy.Tests
@@ -14,8 +10,8 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanExerciseProxyBuilder()
         {
-            var httpEndpoint = "http://from";
-            var wsEndpoint = "ws://from";
+            const string httpEndpoint = "http://from";
+            const string wsEndpoint = "ws://from";
 
             var proxyString = ProxyBuilder.Instance.UseHttp(httpEndpoint).UseWs(wsEndpoint).New().Build();
             Assert.Equal(httpEndpoint, await proxyString.HttpProxy.EndpointComputer(null, null));
@@ -29,35 +25,25 @@ namespace AspNetCore.Proxy.Tests
             Assert.Equal(httpEndpoint, await proxyComputerToValueTask.HttpProxy.EndpointComputer(null, null));
             Assert.Equal(wsEndpoint, await proxyComputerToValueTask.WsProxy.EndpointComputer(null, null));
         }
-        
 
         [Fact]
         public async Task CanProxyBuilderFailWithoutHttpOrWsProxy()
         {
-            Assert.ThrowsAny<Exception>(() => 
-            {
-                ProxyBuilder.Instance.New().Build();
-            });
+            Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.New().Build());
         }
 
         [Fact]
         public async Task CanProxyBuilderFailWithMultiplProxiesOfSameType()
         {
-            Assert.ThrowsAny<Exception>(() => {
-                ProxyBuilder.Instance.UseHttp("").UseHttp("");
-            });
+            Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.UseHttp("").UseHttp(""));
 
-            Assert.ThrowsAny<Exception>(() => {
-                ProxyBuilder.Instance.UseWs("").UseWs("");
-            });
+            Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.UseWs("").UseWs(""));
         }
 
         [Fact]
         public async Task CanProxyBuilderFailWhenRoutelessAbused()
         {
-            Assert.ThrowsAny<Exception>(() => {
-                ProxyBuilder.Instance.WithIsRouteless(true).WithRoute("");
-            });
+            Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.WithIsRouteless(true).WithRoute(""));
         }
     }
 }

@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using AspNetCore.Proxy.Builders;
-using AspNetCore.Proxy.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,7 +14,7 @@ namespace AspNetCore.Proxy.Extensions
     {
         internal static async Task ExecuteHttpProxyOperationAsync(this HttpContext context, HttpProxy httpProxy)
         {
-            var uri = await context.GetEndpointFromComputerAsync(httpProxy.EndpointComputer);
+            var uri = await context.GetEndpointFromComputerAsync(httpProxy.EndpointComputer).ConfigureAwait(false);
             var options = httpProxy.Options;
 
             try
@@ -79,8 +78,10 @@ namespace AspNetCore.Proxy.Extensions
 
             // Copy the request headers.
             foreach (var header in context.Request.Headers)
+            {
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+            }
 
             // Add forwarded headers.
             if(shouldAddForwardedHeaders)
@@ -149,7 +150,7 @@ namespace AspNetCore.Proxy.Extensions
                 if(isLocalIpV6)
                     localIp = $"\"[{localIp}]\"";
 
-                forwardedHeader.Append($"by={localIp};");
+                forwardedHeader.Append("by=").Append(localIp).Append(';');
             }
 
             if(remoteIp != null)
@@ -157,7 +158,7 @@ namespace AspNetCore.Proxy.Extensions
                 if(isRemoteIpV6)
                     remoteIp = $"\"[{remoteIp}]\"";
 
-                forwardedHeader.Append($"for={remoteIp};");
+                forwardedHeader.Append("for=").Append(remoteIp).Append(';');
             }
 
             requestMessage.Headers.TryAddWithoutValidation("Forwarded", forwardedHeader.ToString());

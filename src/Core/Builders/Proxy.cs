@@ -12,7 +12,7 @@ namespace AspNetCore.Proxy.Builders
         IProxyBuilder UseHttp(EndpointComputerToValueTask endpointComputer, Action<IHttpProxyOptionsBuilder> builderAction = null);
         IProxyBuilder UseHttp(Action<IHttpProxyBuilder> builderAction);
         IProxyBuilder UseHttp(IHttpProxyBuilder builder);
-        
+
         IProxyBuilder UseWs(string endpoint, Action<IWsProxyOptionsBuilder> builderAction = null);
         IProxyBuilder UseWs(EndpointComputerToString endpointComputer, Action<IWsProxyOptionsBuilder> builderAction = null);
         IProxyBuilder UseWs(EndpointComputerToValueTask endpointComputer, Action<IWsProxyOptionsBuilder> builderAction = null);
@@ -22,14 +22,13 @@ namespace AspNetCore.Proxy.Builders
 
     public class ProxyBuilder : IProxyBuilder
     {
-        private bool _isRouteless = false;
+        private bool _isRouteless;
         private string _route;
         private IHttpProxyBuilder _httpProxyBuilder;
         private IWsProxyBuilder _wsProxyBuilder;
 
         private ProxyBuilder()
         {
-
         }
 
         public static ProxyBuilder Instance => new ProxyBuilder();
@@ -48,7 +47,7 @@ namespace AspNetCore.Proxy.Builders
                 .UseHttp(_httpProxyBuilder?.New())
                 .UseWs(_wsProxyBuilder?.New());
         }
-        
+
         public Proxy Build()
         {
             if(_httpProxyBuilder == null && _wsProxyBuilder == null)
@@ -64,7 +63,7 @@ namespace AspNetCore.Proxy.Builders
         {
             if(_isRouteless)
                 throw new Exception("This is a `routeless` Proxy builder (i.e., likely used with `RunProxy`): adding a route in this context is a no-op that should be removed.");
-            
+
             _route = route;
 
             return this;

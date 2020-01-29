@@ -17,15 +17,12 @@ namespace AspNetCore.Proxy.Tests
             var proxiedServerTask = WebHost.CreateDefaultBuilder()
                 .SuppressStatusMessages(true)
                 .ConfigureLogging(logging => logging.ClearProviders())
-                .ConfigureKestrel(options =>
-                {
-                    options.ListenLocalhost(5004);
-                })
+                .ConfigureKestrel(options => options.ListenLocalhost(5004))
                 .Configure(app => app.UseWebSockets().Run(context =>
                 {
                     if(context.WebSockets.IsWebSocketRequest)
                         return context.SocketBoomerang();
-                        
+
                     return context.HttpBoomerang();
                 }))
                 .Build().RunAsync(token);
@@ -33,13 +30,10 @@ namespace AspNetCore.Proxy.Tests
             var proxyServerTask = WebHost.CreateDefaultBuilder()
                 .SuppressStatusMessages(true)
                 .ConfigureLogging(logging => logging.ClearProviders())
-                .ConfigureKestrel(options =>
+                .ConfigureKestrel(options => options.ListenLocalhost(5003))
+                .ConfigureServices(services =>
                 {
-                    options.ListenLocalhost(5003);
-                })
-                .ConfigureServices(services => 
-                {
-                    services.AddProxies(client =>
+                    services.AddProxies(_ =>
                     {
                         // Code coverage FTW.
                     });
@@ -69,12 +63,9 @@ namespace AspNetCore.Proxy.Tests
             var proxyServerTask2 = WebHost.CreateDefaultBuilder()
                 .SuppressStatusMessages(true)
                 .ConfigureLogging(logging => logging.ClearProviders())
-                .ConfigureKestrel(options =>
-                {
-                    options.ListenLocalhost(5007);
-                })
+                .ConfigureKestrel(options => options.ListenLocalhost(5007))
                 .ConfigureServices(services => services.AddProxies())
-                .Configure(app => 
+                .Configure(app =>
                 {
                     app.UseWebSockets();
                     app.RunProxy(proxy => proxy.UseHttp("http://localhost:5004"));

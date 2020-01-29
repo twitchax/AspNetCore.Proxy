@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AspNetCore.Proxy.Endpoints;
@@ -11,7 +10,7 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanExerciseRoundRobin()
         {
-            var testRounds = 17;
+            const int testRounds = 17;
             var servers = new List<string> { "1", "2", "3", "4", "5" };
             var roundRobin = RoundRobin.Of(servers.ToArray());
 

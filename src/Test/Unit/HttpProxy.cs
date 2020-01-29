@@ -11,8 +11,8 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanExerciseHttpProxyBuilder()
         {
-            var endpoint = "any";
-            var clientName = "bogus";
+            const string endpoint = "any";
+            const string clientName = "bogus";
 
             var httpProxyOptions = HttpProxyOptionsBuilder.Instance.WithHttpClientName(clientName).New();
 

@@ -11,7 +11,7 @@ namespace AspNetCore.Proxy.Tests
 {
     public class WsServerFixture : IDisposable
     {
-        private CancellationTokenSource _source;
+        private readonly CancellationTokenSource _source;
 
         public WsServerFixture()
         {
@@ -29,7 +29,7 @@ namespace AspNetCore.Proxy.Tests
     {
         public readonly ClientWebSocket _client;
 
-        public WsIntegrationTests(WsServerFixture fixture)
+        public WsIntegrationTests(WsServerFixture _)
         {
             _client = new ClientWebSocket();
             _client.Options.SetRequestHeader("SomeHeader", "SomeValue");
@@ -42,10 +42,10 @@ namespace AspNetCore.Proxy.Tests
         [InlineData("ws://localhost:5001/api/ws2")]
         public async Task CanDoWebSockets(string server)
         {
-            var send1 = "TEST1";
+            const string send1 = "TEST1";
             var expected1 = $"[{send1}]";
 
-            var send2 = "TEST2";
+            const string send2 = "TEST2";
             var expected2 = $"[{send2}]";
 
             await _client.ConnectAsync(new Uri(server), CancellationToken.None);
@@ -74,11 +74,7 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanCatchAbruptClose()
         {
-            var send1 = "PLEASE_KILL";
-            var expected1 = $"[{send1}]";
-
-            var send2 = "TEST2";
-            var expected2 = $"[{send2}]";
+            const string send1 = "PLEASE_KILL";
 
             await _client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None);
 
@@ -96,16 +92,13 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanIntercept()
         {
-            var message = "The server returned status code '200' when status code '101' was expected.";
+            const string message = "The server returned status code '200' when status code '101' was expected.";
 
             var client = new ClientWebSocket();
             client.Options.AddSubProtocol("interceptedProtocol");
 
-            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() =>
-            {
-                return client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None);
-            });
-            
+            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() => client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None));
+
             Assert.Equal(message, exception.Message);
         }
 
@@ -118,26 +111,20 @@ namespace AspNetCore.Proxy.Tests
 
             var client = new ClientWebSocket();
 
-            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() =>
-            {
-                return client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None);
-            });
-            
+            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() => client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None));
+
             Assert.Equal(message, exception.Message);
         }
 
         [Fact]
         public async Task CanFailWhenWsRequestIsToHttpProxy()
         {
-            var message = "The server returned status code '502' when status code '101' was expected.";
+            const string message = "The server returned status code '502' when status code '101' was expected.";
 
             var client = new ClientWebSocket();
 
-            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() =>
-            {
-                return client.ConnectAsync(new Uri("ws://localhost:5001/api/http"), CancellationToken.None);
-            });
-            
+            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() => client.ConnectAsync(new Uri("ws://localhost:5001/api/http"), CancellationToken.None));
+
             Assert.Equal(message, exception.Message);
         }
 
@@ -147,7 +134,7 @@ namespace AspNetCore.Proxy.Tests
             var client = new HttpClient();
 
             var result = await client.GetAsync("http://localhost:5001/api/ws");
-            
+
             Assert.Equal(HttpStatusCode.BadGateway, result.StatusCode);
         }
     }

@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Http;
 
 namespace AspNetCore.Proxy.Builders
 {
@@ -15,7 +14,7 @@ namespace AspNetCore.Proxy.Builders
 
     public class ProxiesBuilder : IProxiesBuilder
     {
-        private IList<IProxyBuilder> _proxyBuilders;
+        private readonly IList<IProxyBuilder> _proxyBuilders;
 
         private ProxiesBuilder()
         {
@@ -64,7 +63,7 @@ namespace AspNetCore.Proxy.Builders
 
     public class Proxies : IEnumerable<Proxy>
     {
-        private IList<Proxy> _proxies;
+        private readonly IList<Proxy> _proxies;
 
         public Proxies(IEnumerable<Proxy> proxies)
         {
@@ -72,6 +71,6 @@ namespace AspNetCore.Proxy.Builders
         }
 
         public IEnumerator<Proxy> GetEnumerator() => _proxies.GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => (_proxies as IList).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 }

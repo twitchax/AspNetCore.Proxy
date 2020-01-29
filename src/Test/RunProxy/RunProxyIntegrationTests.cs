@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -11,7 +10,7 @@ namespace AspNetCore.Proxy.Tests
 {
     public class RunProxyServerFixture : IDisposable
     {
-        private CancellationTokenSource _source;
+        private readonly CancellationTokenSource _source;
 
         public RunProxyServerFixture()
         {
@@ -30,7 +29,7 @@ namespace AspNetCore.Proxy.Tests
         private readonly ClientWebSocket _wsClient;
         private readonly HttpClient _httpClient;
 
-        public RunProxyIntegrationTests(RunProxyServerFixture fixture)
+        public RunProxyIntegrationTests(RunProxyServerFixture _)
         {
             _wsClient = new ClientWebSocket();
             _wsClient.Options.AddSubProtocol(Extensions.SupportedProtocol);
@@ -79,7 +78,7 @@ namespace AspNetCore.Proxy.Tests
         {
             var send1 = "TEST1";
             var expected1 = $"[{send1}]";
-            
+
             var response = await _httpClient.PostAsync("http://localhost:5007/at/some/other/path", new StringContent(send1));
             Assert.Equal(expected1, await response.Content.ReadAsStringAsync());
         }
@@ -89,10 +88,7 @@ namespace AspNetCore.Proxy.Tests
         {
             var message = "The server returned status code '502' when status code '101' was expected.";
 
-            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() => 
-            {
-                return _wsClient.ConnectAsync(new Uri("ws://localhost:5007/to/random/path"), CancellationToken.None);
-            });
+            var exception = await Assert.ThrowsAnyAsync<WebSocketException>(() => _wsClient.ConnectAsync(new Uri("ws://localhost:5007/to/random/path"), CancellationToken.None));
 
             Assert.Equal(message, exception.Message);
         }
@@ -107,10 +103,7 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanFailOnIncorrectForwardToHttp()
         {
-            await Assert.ThrowsAnyAsync<WebSocketException>(async () =>
-            {
-                await _wsClient.ConnectAsync(new Uri("ws://localhost:5003/should/forward/to/http"), CancellationToken.None);
-            });
+            await Assert.ThrowsAnyAsync<WebSocketException>(async () => await _wsClient.ConnectAsync(new Uri("ws://localhost:5003/should/forward/to/http"), CancellationToken.None));
         }
     }
 }

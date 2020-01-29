@@ -10,7 +10,9 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using AspNetCore.Proxy.Extensions;
 using AspNetCore.Proxy.Options;
-using AspNetCore.Proxy.Builders;
+using System.Diagnostics.CodeAnalysis;
+
+[assembly: SuppressMessage("Readability", "RCS1090", Justification = "Not a library, so no need for `ConfigureAwait`.")]
 
 namespace AspNetCore.Proxy.Tests
 {
@@ -21,7 +23,7 @@ namespace AspNetCore.Proxy.Tests
             services.AddRouting();
             services.AddProxies();
             services.AddControllers();
-            services.AddHttpClient("CustomClient", c => 
+            services.AddHttpClient("CustomClient", c =>
             {
                 // Force a timeout.
                 c.Timeout = TimeSpan.FromMilliseconds(1);
@@ -38,15 +40,9 @@ namespace AspNetCore.Proxy.Tests
             {
                 proxies.Map("echo/post", proxy => proxy.UseHttp("https://postman-echo.com/post"));
 
-                proxies.Map("api/comments/contextandargstotask/{postId}", proxy => proxy.UseHttp((c, args) =>
-                {
-                    return new ValueTask<string>($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}");
-                }));
+                proxies.Map("api/comments/contextandargstotask/{postId}", proxy => proxy.UseHttp((_, args) => new ValueTask<string>($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}")));
 
-                proxies.Map("api/comments/contextandargstostring/{postId}", proxy => proxy.UseHttp((c, args) =>
-                {
-                    return $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}";
-                }));
+                proxies.Map("api/comments/contextandargstostring/{postId}", proxy => proxy.UseHttp((_, args) => $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}"));
             });
         }
     }
@@ -120,7 +116,7 @@ namespace AspNetCore.Proxy.Tests
         public Task GetWithCustomRequest(int postId)
         {
             var options = HttpProxyOptionsBuilder.Instance
-                .WithBeforeSend((c, hrm) =>
+                .WithBeforeSend((_, hrm) =>
                 {
                     hrm.RequestUri = new Uri("https://jsonplaceholder.typicode.com/posts/2");
                     return Task.CompletedTask;
@@ -135,7 +131,7 @@ namespace AspNetCore.Proxy.Tests
         public Task GetWithCustomResponse(int postId)
         {
             var options = HttpProxyOptionsBuilder.Instance
-                .WithAfterReceive((c, hrm) =>
+                .WithAfterReceive((_, hrm) =>
                 {
                     var newContent = new StringContent("It's all greek...er, Latin...to me!");
                     hrm.Content = newContent;
@@ -160,7 +156,7 @@ namespace AspNetCore.Proxy.Tests
         public Task GetWithBadResponse(int postId)
         {
             var options = HttpProxyOptionsBuilder.Instance
-                .WithAfterReceive((c, hrm) =>
+                .WithAfterReceive((_, hrm) =>
                 {
                     if(hrm.StatusCode == HttpStatusCode.NotFound)
                     {
@@ -179,14 +175,14 @@ namespace AspNetCore.Proxy.Tests
         public Task GetWithGenericFail(int postId)
         {
             var options = HttpProxyOptionsBuilder.Instance
-                .WithBeforeSend((c, hrm) =>
+                .WithBeforeSend((_, hrm) =>
                 {
                     var a = 0;
                     var b = 1 / a;
                     return Task.CompletedTask;
                 })
                 .Build();
-                
+
             return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
@@ -194,7 +190,7 @@ namespace AspNetCore.Proxy.Tests
         public Task GetWithCustomFail(int postId)
         {
             var options = HttpProxyOptionsBuilder.Instance
-                .WithBeforeSend((c, hrm) =>
+                .WithBeforeSend((_, hrm) =>
                 {
                     var a = 0;
                     var b = 1 / a;

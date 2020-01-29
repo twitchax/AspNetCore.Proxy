@@ -47,16 +47,10 @@ namespace AspNetCore.Proxy.Extensions
             app.UseRouter(builder => {
                 var proxiesBuilder = ProxiesBuilder.Instance;
                 builderAction(proxiesBuilder);
-                
-                var proxies = proxiesBuilder.Build();
 
-                foreach(var proxy in proxies)
+                foreach(var proxy in proxiesBuilder.Build())
                 {
-                    builder.MapMiddlewareRoute(proxy.Route, proxyApp => {
-                        proxyApp.Run(context => {
-                            return context.ExecuteProxyOperationAsync(proxy);
-                        });
-                    });
+                    builder.MapMiddlewareRoute(proxy.Route, proxyApp => proxyApp.Run(context => context.ExecuteProxyOperationAsync(proxy)));
                 }
             });
 
@@ -82,15 +76,15 @@ namespace AspNetCore.Proxy.Extensions
                 proxy.HttpProxy.EndpointComputer = GetRunProxyComputer(oldHttpEndpointComputer);
             if(oldWsEndpointComputer != null)
                 proxy.WsProxy.EndpointComputer = GetRunProxyComputer(oldWsEndpointComputer);
-                
+
             app.Run(context => context.ExecuteProxyOperationAsync(proxy));
         }
 
         public static void RunProxy(
-            this IApplicationBuilder app, 
+            this IApplicationBuilder app,
             EndpointComputerToValueTask httpEndpointComputer,
-            EndpointComputerToValueTask wsEndpointComputer, 
-            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null, 
+            EndpointComputerToValueTask wsEndpointComputer,
+            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null,
             Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null)
         {
             app.RunProxy(builder => builder
@@ -108,8 +102,8 @@ namespace AspNetCore.Proxy.Extensions
         public static void RunProxy(
             this IApplicationBuilder app, 
             EndpointComputerToString httpEndpointComputer,
-            EndpointComputerToString wsEndpointComputer, 
-            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null, 
+            EndpointComputerToString wsEndpointComputer,
+            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null,
             Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null)
         {
             app.RunProxy(builder => builder
@@ -125,10 +119,10 @@ namespace AspNetCore.Proxy.Extensions
         }
 
         public static void RunProxy(
-            this IApplicationBuilder app, 
+            this IApplicationBuilder app,
             string httpEndpoint,
-            string wsEndpoint, 
-            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null, 
+            string wsEndpoint,
+            Action<IHttpProxyOptionsBuilder> httpBuilderOptionsAction = null,
             Action<IWsProxyOptionsBuilder> wsBuilderOptionsAction = null)
         {
             app.RunProxy(builder => builder
@@ -225,14 +219,14 @@ namespace AspNetCore.Proxy.Extensions
                 await context.ExecuteWsProxyOperationAsync(proxy.WsProxy).ConfigureAwait(false);
                 return;
             }
-            
+
             if(!isWebSocket && proxy.HttpProxy != null)
             {
                 await context.ExecuteHttpProxyOperationAsync(proxy.HttpProxy).ConfigureAwait(false);
                 return;
             }
 
-            var requestType = isWebSocket ? "WebSokcet" : "HTTP(S)";
+            var requestType = isWebSocket ? "WebSocket" : "HTTP(S)";
 
             // If the failures are not caught, then write a generic response.
             context.Response.StatusCode = 502 /* BAD GATEWAY */;
@@ -243,7 +237,7 @@ namespace AspNetCore.Proxy.Extensions
 
         internal static EndpointComputerToValueTask GetRunProxyComputer(EndpointComputerToValueTask endpointComputer)
         {
-            return async (context, args) => 
+            return async (context, args) =>
             {
                 var endpoint = await GetEndpointFromComputerAsync(context, endpointComputer).ConfigureAwait(false);
                 return $"{endpoint}{context.Request.Path}";

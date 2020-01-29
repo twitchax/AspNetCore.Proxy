@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using AspNetCore.Proxy.Extensions;
-using AspNetCore.Proxy.Builders;
 using Microsoft.AspNetCore.Http;
 
 namespace AspNetCore.Proxy.Tests
@@ -34,7 +33,7 @@ namespace AspNetCore.Proxy.Tests
             return this.HttpProxyAsync("http://localhost:5002/");
         }
     }
-    
+
     internal static class WsHelpers
     {
         internal static Task RunWsServers(CancellationToken token)
@@ -42,28 +41,19 @@ namespace AspNetCore.Proxy.Tests
             var proxiedServerTask = WebHost.CreateDefaultBuilder()
                 .SuppressStatusMessages(true)
                 .ConfigureLogging(logging => logging.ClearProviders())
-                .ConfigureKestrel(options =>
-                {
-                    options.ListenLocalhost(5002);
-                })
-                .Configure(app => app.UseWebSockets().Run(context =>
-                {
-                    return context.SocketBoomerang();
-                }))
+                .ConfigureKestrel(options => options.ListenLocalhost(5002))
+                .Configure(app => app.UseWebSockets().Run(context => context.SocketBoomerang()))
                 .Build().RunAsync(token);
 
             var proxyServerTask = WebHost.CreateDefaultBuilder()
                 .SuppressStatusMessages(true)
                 .ConfigureLogging(logging => logging.ClearProviders())
-                .ConfigureKestrel(options =>
-                {
-                    options.ListenLocalhost(5001);
-                })
+                .ConfigureKestrel(options => options.ListenLocalhost(5001))
                 .ConfigureServices(services => services.AddProxies().AddRouting().AddControllers())
                 .Configure(app => 
                 {
                     app.UseWebSockets().UseRouting().UseEndpoints(end => end.MapControllers());
-                    
+
                     app.UseProxies(proxies =>
                     {
                         // Adding extra options to exercise them.
@@ -71,7 +61,7 @@ namespace AspNetCore.Proxy.Tests
                             .UseWs("ws://localhost:5002/", options => options
                                 .WithBufferSize(8192)
                                 .WithIntercept(context => new ValueTask<bool>(context.WebSockets.WebSocketRequestedProtocols.Contains("interceptedProtocol")))
-                                .WithBeforeConnect((context, wso) => 
+                                .WithBeforeConnect((context, wso) =>
                                 {
                                     wso.AddSubProtocol("myRandomProto");
                                     return Task.CompletedTask;

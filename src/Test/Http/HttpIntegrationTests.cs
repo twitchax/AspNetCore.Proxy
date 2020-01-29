@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.WebSockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -125,7 +122,7 @@ namespace AspNetCore.Proxy.Tests
         {
             var response = await _client.GetAsync("api/controller/customresponse/1");
             response.EnsureSuccessStatusCode();
-            
+
             Assert.Equal("It's all greek...er, Latin...to me!", await response.Content.ReadAsStringAsync());
         }
 
@@ -134,7 +131,7 @@ namespace AspNetCore.Proxy.Tests
         {
             var response = await _client.GetAsync("api/controller/badresponse/1");
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            
+
             Assert.Equal("I tried to proxy, but I chose a bad address, and it is not found.", await response.Content.ReadAsStringAsync());
         }
 
@@ -164,10 +161,7 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanProxyConcurrentCalls()
         {
-            var calls = Enumerable.Range(1, 100).Select(i =>
-            {
-                return _client.GetAsync($"api/controller/posts/{i}");
-            });
+            var calls = Enumerable.Range(1, 100).Select(i => _client.GetAsync($"api/controller/posts/{i}"));
 
             Assert.True((await Task.WhenAll(calls)).All(r => r.IsSuccessStatusCode));
         }

@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using AspNetCore.Proxy.Options;
-using Microsoft.AspNetCore.Http;
 
 namespace AspNetCore.Proxy.Builders
 {
@@ -24,7 +22,6 @@ namespace AspNetCore.Proxy.Builders
 
         private WsProxyBuilder()
         {
-
         }
 
         public static WsProxyBuilder Instance => new WsProxyBuilder();
@@ -35,7 +32,7 @@ namespace AspNetCore.Proxy.Builders
                 .WithEndpoint(_endpointComputer)
                 .WithOptions(_optionsBuilder?.New());
         }
-        
+
         public WsProxy Build()
         {
             if(_endpointComputer == null)
@@ -47,7 +44,9 @@ namespace AspNetCore.Proxy.Builders
         }
 
         public IWsProxyBuilder WithEndpoint(string endpoint) => this.WithEndpoint((context, args) => new ValueTask<string>(endpoint));
+
         public IWsProxyBuilder WithEndpoint(EndpointComputerToString endpointComputer) => this.WithEndpoint((context, args) => new ValueTask<string>(endpointComputer(context, args)));
+        
         public IWsProxyBuilder WithEndpoint(EndpointComputerToValueTask endpointComputer)
         {
             _endpointComputer = endpointComputer;

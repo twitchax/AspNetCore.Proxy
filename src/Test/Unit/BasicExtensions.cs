@@ -10,7 +10,7 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanExerciseRunProxy()
         {
-            var endpoint = "garbage";
+            const string endpoint = "garbage";
 
             var app = Mock.Of<IApplicationBuilder>();
 

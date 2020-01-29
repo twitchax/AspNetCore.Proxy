@@ -11,8 +11,8 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanExerciseWsProxyBuilder()
         {
-            var endpoint = "any";
-            var bufferSize = 52978;
+            const string endpoint = "any";
+            const int bufferSize = 52978;
 
             var wsProxyOptions = WsProxyOptionsBuilder.Instance.WithBufferSize(bufferSize).New();
 

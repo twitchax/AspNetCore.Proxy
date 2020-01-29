@@ -19,11 +19,9 @@ namespace AspNetCore.Proxy.Builders
         private EndpointComputerToValueTask _endpointComputer;
 
         private IHttpProxyOptionsBuilder _optionsBuilder;
-        private HttpProxyOptions _options;
 
         private HttpProxyBuilder()
         {
-
         }
 
         public static HttpProxyBuilder Instance => new HttpProxyBuilder();
@@ -34,7 +32,7 @@ namespace AspNetCore.Proxy.Builders
                 .WithEndpoint(_endpointComputer)
                 .WithOptions(_optionsBuilder?.New());
         }
-        
+
         public HttpProxy Build()
         {
             if(_endpointComputer == null)
@@ -46,7 +44,9 @@ namespace AspNetCore.Proxy.Builders
         }
 
         public IHttpProxyBuilder WithEndpoint(string endpoint) => this.WithEndpoint((context, args) => new ValueTask<string>(endpoint));
+
         public IHttpProxyBuilder WithEndpoint(EndpointComputerToString endpointComputer) => this.WithEndpoint((context, args) => new ValueTask<string>(endpointComputer(context, args)));
+
         public IHttpProxyBuilder WithEndpoint(EndpointComputerToValueTask endpointComputer)
         {
             _endpointComputer = endpointComputer;
