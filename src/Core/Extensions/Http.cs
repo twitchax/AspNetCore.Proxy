@@ -26,7 +26,7 @@ namespace AspNetCore.Proxy.Extensions
                     throw new InvalidOperationException("Only forwarded addresses starting with 'http://' or 'https://' are supported for HTTP requests.");
 
                 // If `true`, this proxy call has been intercepted.
-                if(options?.Intercept != null && await options.Intercept(context))
+                if(options?.Intercept != null && await options.Intercept(context).ConfigureAwait(false))
                     return;
 
                 var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
