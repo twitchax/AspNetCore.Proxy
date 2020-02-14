@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace AspNetCore.Proxy.Tests
 {
@@ -63,7 +64,8 @@ namespace AspNetCore.Proxy.Tests
         internal static async Task HttpBoomerang(this HttpContext context)
         {
             var message = await new StreamReader(context.Request.Body).ReadToEndAsync();
-            await context.Response.WriteAsync($"[{message}]");
+            var uri = context.Request.GetDisplayUrl();
+            await context.Response.WriteAsync($"({uri})[{message}]");
         }
     }
 }
