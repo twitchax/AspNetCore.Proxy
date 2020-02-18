@@ -70,7 +70,7 @@ namespace AspNetCore.Proxy.Tests
 
             // HTTP test.
             var response = await _httpClient.PostAsync("http://localhost:5003/at/some/path", new StringContent(send1));
-            Assert.Equal(expected1, await response.Content.ReadAsStringAsync());
+            Assert.EndsWith(expected1, await response.Content.ReadAsStringAsync());
         }
 
         [Fact]
@@ -80,6 +80,16 @@ namespace AspNetCore.Proxy.Tests
             var expected1 = $"[{send1}]";
 
             var response = await _httpClient.PostAsync("http://localhost:5007/at/some/other/path", new StringContent(send1));
+            Assert.EndsWith(expected1, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task CanAppendQueryParameters()
+        {
+            var send1 = "TESTWITHQUERY";
+            var expected1 = $"(http://localhost:5004/at/some/other/path?with=query&parameters=true)[{send1}]";
+
+            var response = await _httpClient.PostAsync("http://localhost:5007/at/some/other/path?with=query&parameters=true", new StringContent(send1));
             Assert.Equal(expected1, await response.Content.ReadAsStringAsync());
         }
 

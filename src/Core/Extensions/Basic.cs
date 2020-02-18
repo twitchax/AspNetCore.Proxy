@@ -240,7 +240,7 @@ namespace AspNetCore.Proxy.Extensions
             return async (context, args) =>
             {
                 var endpoint = await GetEndpointFromComputerAsync(context, endpointComputer).ConfigureAwait(false);
-                return $"{endpoint}{context.Request.Path}";
+                return $"{endpoint}{context.Request.Path}{context.Request.QueryString}";
             };
         }
 
