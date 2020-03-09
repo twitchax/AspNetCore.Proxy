@@ -8,7 +8,7 @@ namespace AspNetCore.Proxy.Tests
     public class RoundRobinTests
     {
         [Fact]
-        public async Task CanExerciseRoundRobin()
+        public void CanExerciseRoundRobin()
         {
             const int testRounds = 17;
             var servers = new List<string> { "1", "2", "3", "4", "5" };

@@ -27,13 +27,13 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanProxyBuilderFailWithoutHttpOrWsProxy()
+        public void CanProxyBuilderFailWithoutHttpOrWsProxy()
         {
             Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.New().Build());
         }
 
         [Fact]
-        public async Task CanProxyBuilderFailWithMultiplProxiesOfSameType()
+        public void CanProxyBuilderFailWithMultiplProxiesOfSameType()
         {
             Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.UseHttp("").UseHttp(""));
 
@@ -41,7 +41,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanProxyBuilderFailWhenRoutelessAbused()
+        public void CanProxyBuilderFailWhenRoutelessAbused()
         {
             Assert.ThrowsAny<Exception>(() => ProxyBuilder.Instance.WithIsRouteless(true).WithRoute(""));
         }
