@@ -60,11 +60,12 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// Creates a new instance of <see cref="HttpProxyOptions"/> for building purposes.
+        /// Gets a `new`, empty instance of this type.
         /// </summary>
-        /// <returns>A new, default, instance of <see cref="HttpProxyOptions"/>.</returns>
+        /// <returns>A `new` instance of <see cref="HttpProxyOptionsBuilder"/>.</returns>
         public static WsProxyOptionsBuilder Instance => new WsProxyOptionsBuilder();
 
+        /// <inheritdoc/>
         public IWsProxyOptionsBuilder New()
         {
             return Instance
@@ -74,10 +75,7 @@ namespace AspNetCore.Proxy.Options
                 .WithHandleFailure(_handleFailure);
         }
 
-        /// <summary>
-        /// Build the equivalent <see cref="WsProxyOptions"/>.
-        /// </summary>
-        /// <returns>The equivalent <see cref="WsProxyOptions"/>.</returns>
+        /// <inheritdoc/>
         public WsProxyOptions Build()
         {
             return new WsProxyOptions(
@@ -87,18 +85,35 @@ namespace AspNetCore.Proxy.Options
                 _handleFailure);
         }
 
+        /// <summary>
+        /// Sets the buffer size option.
+        /// </summary>
+        /// <param name="bufferSize"></param>
+        /// <returns>The current instance with the specified option set.</returns>
         public IWsProxyOptionsBuilder WithBufferSize(int bufferSize)
         {
             _bufferSize = bufferSize;
             return this;
         }
 
+        /// <summary>
+        /// Sets the <see cref="Func{HttpContext, Task}"/> that is invoked upon a new connection.
+        /// The result should be `true` if the call is intercepted and **not** meant to be forwarded.
+        /// </summary>
+        /// <param name="intercept"></param>
+        /// <returns>The current instance with the specified option set.</returns>
         public IWsProxyOptionsBuilder WithIntercept(Func<HttpContext, ValueTask<bool>> intercept)
         {
             _intercept = intercept;
             return this;
         }
 
+        /// <summary>
+        /// Sets the <see cref="Func{HttpContext, ClientWebSocketOptions, Task}"/> that is invoked upon a new connection.
+        /// The <see cref="ClientWebSocketOptions"/> can be edited before the response is written to the client.
+        /// </summary>
+        /// <param name="beforeConnect"></param>
+        /// <returns>The current instance with the specified option set.</returns>
         public IWsProxyOptionsBuilder WithBeforeConnect(Func<HttpContext, ClientWebSocketOptions, Task> beforeConnect)
         {
             _beforeConnect = beforeConnect;
@@ -106,10 +121,11 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.
+        /// 
+        /// Sets the <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.
         /// </summary>
         /// <param name="handleFailure"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IWsProxyOptionsBuilder WithHandleFailure(Func<HttpContext, Exception, Task> handleFailure)
         {
             _handleFailure = handleFailure;
@@ -122,6 +138,12 @@ namespace AspNetCore.Proxy.Options
     /// </summary>
     public class WsProxyOptions
     {
+        /// <summary>
+        /// BufferSize property.
+        /// </summary>
+        /// <value>
+        /// The buffer size.
+        /// </value>
         public int BufferSize { get; }
 
         /// <summary>
@@ -133,19 +155,24 @@ namespace AspNetCore.Proxy.Options
         /// </value>
         public Func<HttpContext, ValueTask<bool>> Intercept { get; }
 
+        /// <summary>
+        /// BeforeConnect property.
+        /// </summary>
+        /// <value>
+        /// A <see cref="Func{HttpContext, ClientWebSocketOptions, Task}"/> that is invoked upon a call.
+        /// The <see cref="ClientWebSocketOptions"/> can be edited before the response is written to the client.
+        /// </value>
         public Func<HttpContext, ClientWebSocketOptions, Task> BeforeConnect { get; }
 
         /// <summary>
         /// HandleFailure property.
         /// </summary>
-        /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
+        /// <value>
+        /// A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.
+        /// </value>
         public Func<HttpContext, Exception, Task> HandleFailure { get; }
 
-        /// <summary>
-        /// The constructor.
-        /// </summary>
-        /// <param name="handleFailure"></param>
-        public WsProxyOptions(
+        internal WsProxyOptions(
             int bufferSize,
             Func<HttpContext, ValueTask<bool>> intercept,
             Func<HttpContext, ClientWebSocketOptions, Task> beforeConnect,

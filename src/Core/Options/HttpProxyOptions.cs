@@ -78,15 +78,12 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// Creates a new instance of <see cref="HttpProxyOptions"/> for building purposes.
+        /// Gets a `new`, empty instance of this type.
         /// </summary>
-        /// <returns>A new, default, instance of <see cref="HttpProxyOptions"/>.</returns>
+        /// <returns>A `new` instance of <see cref="HttpProxyOptionsBuilder"/>.</returns>
         public static HttpProxyOptionsBuilder Instance => new HttpProxyOptionsBuilder();
 
-        /// <summary>
-        /// Creates a new instance this builder with the same state as this one.
-        /// </summary>
-        /// <returns>A new instance of <see cref="IHttpProxyOptionsBuilder"/> with options copied.</returns>
+        /// <inheritdoc/>
         public IHttpProxyOptionsBuilder New()
         {
             return Instance
@@ -98,10 +95,7 @@ namespace AspNetCore.Proxy.Options
                 .WithHandleFailure(_handleFailure);
         }
 
-        /// <summary>
-        /// Build the equivalent <see cref="HttpProxyOptions"/>.
-        /// </summary>
-        /// <returns>The equivalent <see cref="HttpProxyOptions"/>.</returns>
+        /// <inheritdoc/>
         public HttpProxyOptions Build()
         {
             return new HttpProxyOptions(
@@ -114,11 +108,11 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// Instructs the proxy operation to add `Forwarded` and `X-Forwarded-*` headers.
+        /// Sets the option that instructs the proxy operation to add `Forwarded` and `X-Forwarded-*` headers.
         /// Default behavior is `true`.
         /// </summary>
         /// <param name="shouldAddForwardedHeaders"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IHttpProxyOptionsBuilder WithShouldAddForwardedHeaders(bool shouldAddForwardedHeaders)
         {
             _shouldAddForwardedHeaders = shouldAddForwardedHeaders;
@@ -126,11 +120,11 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// Overrides the default <see cref="HttpClient"/> used for making the proxy call.
+        /// Sets the option that overrides the default <see cref="HttpClient"/> used for making the proxy call.
         /// Default is `null`.
         /// </summary>
         /// <param name="httpClientName"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IHttpProxyOptionsBuilder WithHttpClientName(string httpClientName)
         {
             _httpClientName = httpClientName;
@@ -138,11 +132,11 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// A <see cref="Func{HttpContext, Task}"/> that is invoked upon a call.
+        /// Sets the <see cref="Func{HttpContext, Task}"/> that is invoked upon a call.
         /// The result should be `true` if the call is intercepted and **not** meant to be forwarded.
         /// </summary>
         /// <param name="intercept"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IHttpProxyOptionsBuilder WithIntercept(Func<HttpContext, ValueTask<bool>> intercept)
         {
             _intercept = intercept;
@@ -150,11 +144,11 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// An <see cref="Func{HttpContext, HttpRequestMessage, Task}"/> that is invoked before the call to the remote endpoint.
+        /// Sets the <see cref="Func{HttpContext, HttpRequestMessage, Task}"/> that is invoked before the call to the remote endpoint.
         /// The <see cref="HttpRequestMessage"/> can be edited before the call.
         /// </summary>
         /// <param name="beforeSend"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IHttpProxyOptionsBuilder WithBeforeSend(Func<HttpContext, HttpRequestMessage, Task> beforeSend)
         {
             _beforeSend = beforeSend;
@@ -162,11 +156,11 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// An <see cref="Func{HttpContext, HttpResponseMessage, Task}"/> that is invoked before the response is written to the client.
+        /// Sets the <see cref="Func{HttpContext, HttpResponseMessage, Task}"/> that is invoked before the response is written to the client.
         /// The <see cref="HttpResponseMessage"/> can be edited before the response is written to the client.
         /// </summary>
         /// <param name="afterReceive"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IHttpProxyOptionsBuilder WithAfterReceive(Func<HttpContext, HttpResponseMessage, Task> afterReceive)
         {
             _afterReceive = afterReceive;
@@ -174,10 +168,10 @@ namespace AspNetCore.Proxy.Options
         }
 
         /// <summary>
-        /// A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.
+        /// Sets the <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.
         /// </summary>
         /// <param name="handleFailure"></param>
-        /// <returns>This instance.</returns>
+        /// <returns>The current instance with the specified option set.</returns>
         public IHttpProxyOptionsBuilder WithHandleFailure(Func<HttpContext, Exception, Task> handleFailure)
         {
             _handleFailure = handleFailure;
@@ -241,16 +235,7 @@ namespace AspNetCore.Proxy.Options
         /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
         public Func<HttpContext, Exception, Task> HandleFailure { get; }
 
-        /// <summary>
-        /// The constructor.
-        /// </summary>
-        /// <param name="shouldAddForwardedHeaders"></param>
-        /// <param name="httpClientName"></param>
-        /// <param name="handleFailure"></param>
-        /// <param name="intercept"></param>
-        /// <param name="beforeSend"></param>
-        /// <param name="afterReceive"></param>
-        public HttpProxyOptions(
+        internal HttpProxyOptions(
             bool shouldAddForwardedHeaders,
             string httpClientName,
             Func<HttpContext, Exception, Task> handleFailure,

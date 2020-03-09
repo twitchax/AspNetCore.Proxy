@@ -31,7 +31,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanHttpProxyBuilderFailOnNullEndpointComputer()
+        public void CanHttpProxyBuilderFailOnNullEndpointComputer()
         {
             Assert.ThrowsAny<Exception>(() => {
                 var httpProxy = HttpProxyBuilder.Instance.Build();

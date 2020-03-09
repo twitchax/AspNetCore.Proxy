@@ -8,7 +8,7 @@ namespace AspNetCore.Proxy.Tests
     public class BasicExtensions
     {
         [Fact]
-        public async Task CanExerciseRunProxy()
+        public void CanExerciseRunProxy()
         {
             const string endpoint = "garbage";
 
