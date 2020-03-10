@@ -69,7 +69,7 @@ namespace AspNetCore.Proxy.Tests
                                 .WithHandleFailure(async (context, e) =>
                                 {
                                     context.Response.StatusCode = 599;
-                                    await context.Response.WriteAsync("Failure handeled.");
+                                    await context.Response.WriteAsync("Failure handled.");
                                 })
                         ));
                     });

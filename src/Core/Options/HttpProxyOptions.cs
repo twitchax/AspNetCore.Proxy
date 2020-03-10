@@ -61,7 +61,7 @@ namespace AspNetCore.Proxy.Options
     /// <summary>
     /// Defines the builder options that can be set for proxied HTTP operations.
     /// </summary>
-    public class HttpProxyOptionsBuilder : IHttpProxyOptionsBuilder
+    public sealed class HttpProxyOptionsBuilder : IHttpProxyOptionsBuilder
     {
         private bool _shouldAddForwardedHeaders = true;
         private string _httpClientName;
@@ -182,7 +182,7 @@ namespace AspNetCore.Proxy.Options
     /// <summary>
     /// Defines the options that can be set for proxied HTTP operations.
     /// </summary>
-    public class HttpProxyOptions
+    public sealed class HttpProxyOptions
     {
         /// <summary>
         /// ShouldAddForwardedHeaders property.

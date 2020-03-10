@@ -45,7 +45,7 @@ namespace AspNetCore.Proxy.Options
     /// <summary>
     /// Defines the builder options that can be set for proxied WebSocket operations.
     /// </summary>
-    public class WsProxyOptionsBuilder : IWsProxyOptionsBuilder
+    public sealed class WsProxyOptionsBuilder : IWsProxyOptionsBuilder
     {
         private int _bufferSize = 4096;
         private Func<HttpContext, ValueTask<bool>> _intercept;
@@ -136,7 +136,7 @@ namespace AspNetCore.Proxy.Options
     /// <summary>
     /// Defines the options that can be set for proxied WebSocket operations.
     /// </summary>
-    public class WsProxyOptions
+    public sealed class WsProxyOptions
     {
         /// <summary>
         /// BufferSize property.

@@ -33,7 +33,7 @@ namespace AspNetCore.Proxy.Tests
 
             if(!result.EndOfMessage)
                 throw new InvalidOperationException($"Must send a short message (less than {BUFFER_SIZE / 8} characters).");
-            
+
             return Encoding.UTF8.GetString(buffer, 0, result.Count);
         }
 
@@ -55,7 +55,7 @@ namespace AspNetCore.Proxy.Tests
                 {
                     throw new Exception();
                 }
-                
+
                 // Basically, this server just always sends back a message that is the message it received wrapped with "[]".
                 await socket.SendShortMessageAsync($"[{message}]");
             }
@@ -65,6 +65,7 @@ namespace AspNetCore.Proxy.Tests
         {
             var message = await new StreamReader(context.Request.Body).ReadToEndAsync();
             var uri = context.Request.GetDisplayUrl();
+
             await context.Response.WriteAsync($"({uri})[{message}]");
         }
     }

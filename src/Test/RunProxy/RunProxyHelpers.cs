@@ -38,7 +38,7 @@ namespace AspNetCore.Proxy.Tests
                         // Code coverage FTW.
                     });
                 })
-                .Configure(app => 
+                .Configure(app =>
                 {
                     app.UseWebSockets();
 
