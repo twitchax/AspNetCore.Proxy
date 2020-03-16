@@ -27,7 +27,7 @@ dotnet test src/Test/AspNetCore.Proxy.Tests.csproj
 
 ### Compatibility
 
-Latest .NET Standard 2.0.
+.NET Standard 2.0 or .NET Core 3.0.
 
 ### Examples
 
@@ -44,27 +44,50 @@ public void ConfigureServices(IServiceCollection services)
 
 #### Run a Proxy
 
-You can run a proxy over all endpoints.
+You can run a proxy over all endpoints by using `RunProxy` in your `Configure` method.
 
 ```csharp
-app.RunProxy("https://google.com");
+app.RunProxy(proxy => proxy.UseHttp("http://google.com/"));
 ```
 
-In addition, you can route this proxy depending on the context.
+In addition, you can route this proxy depending on the context.  You can return a `string` or `ValueTask<string>` from the computer.
 
 ```csharp
-app.RunProxy(context =>
-{
-    if(context.WebSockets.IsWebSocketRequest)
-        return "wss://mysite.com/ws";
+app.RunProxy(proxy => proxy
+    .UseHttp((context, args) =>
+    {
+        if(context.Request.Path.StartsWithSegments("/should/forward/to/favorite"))
+            return "http://myfavoriteserver.com";
 
-    return "https://mysite.com";
+        return "http://myhttpserver.com";
+    })
+    .UseWs((context, args) => "ws://mywsserver.com"));
+```
+
+#### Routes At Startup
+
+You can define mapped proxy routes in your `Configure` method at startup.
+
+```csharp
+app.UseRouting();
+app.UseEndpoints(endpoints => endpoints.MapControllers());
+
+app.UseProxies(proxies =>
+{
+    // Bare string.
+    proxies.Map("echo/post", proxy => proxy.UseHttp("https://postman-echo.com/post"));
+
+    // Computed to task.
+    proxies.Map("api/comments/task/{postId}", proxy => proxy.UseHttp((_, args) => new ValueTask<string>($"https://jsonplaceholder.typicode.com/comments/{args["postId"]}")));
+
+    // Computed to string.
+    proxies.Map("api/comments/string/{postId}", proxy => proxy.UseHttp((_, args) => $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}"));
 });
 ```
 
 #### Existing Controller
 
-You can define a proxy over a specific endpoint on an existing `Controller` by leveraging the `Proxy` extension method.
+You can define a proxy over a specific endpoint on an existing `Controller` by leveraging the `ProxyAsync` extension methods.
 
 ```csharp
 public class MyController : Controller
@@ -72,8 +95,24 @@ public class MyController : Controller
     [Route("api/posts/{postId}")]
     public Task GetPosts(int postId)
     {
-        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
+        return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}");
     }
+}
+```
+
+> NOTE: The body of the request should not be consumed by the controller (i.e., the controller should not have any `[FromBody]` parameters]); 
+> otherwise, the proxy operation will fail.  This is due to the fact that the body is read from a `Stream`, and that `Stream` is progressed 
+> when the body is read.
+
+You can "catch all" using ASP.NET `**rest` semantics.
+
+```csharp
+[Route("api/google/{**rest}")]
+public Task ProxyCatchAll(string rest)
+{
+    // If you don't need the query string, then you can remove this.
+    var queryString = this.Request.QueryString.Value;
+    return this.HttpProxyAsync($"https://google.com/{rest}{queryString}");
 }
 ```
 
@@ -85,98 +124,74 @@ public class MyController : Controller
     [Route("ws")]
     public Task OpenWs()
     {
-        return this.ProxyAsync($"wss://myendpoint.com/ws");
+        return this.WsProxyAsync($"wss://mywsendpoint.com/ws");
     }
 }
 ```
+
+#### Uber Example
 
 You can also pass special options that apply when the proxy operation occurs.
 
 ```csharp
 public class MyController : Controller
 {
+    private HttpProxyOptions _httpOptions = HttpProxyOptionsBuilder.Instance
+        .WithShouldAddForwardedHeaders(false)
+        .WithHttpClientName("MyCustomClient")
+        .WithIntercept(async context =>
+        {
+            if(c.Connection.RemotePort == 7777)
+            {
+                c.Response.StatusCode = 300;
+                await c.Response.WriteAsync("I don't like this port, so I am not proxying this request!");
+                return true;
+            }
+
+            return false;
+        })
+        .WithBeforeSend((c, hrm) =>
+        {
+            // Set something that is needed for the downstream endpoint.
+            hrm.Headers.Authorization = new AuthenticationHeaderValue("Basic");
+
+            return Task.CompletedTask;
+        })
+        .WithAfterReceive((c, hrm) =>
+        {
+            // Alter the content in  some way before sending back to client.
+            var newContent = new StringContent("It's all greek...er, Latin...to me!");
+            hrm.Content = newContent;
+
+            return Task.CompletedTask;
+        })
+        .WithHandleFailure(async (c, e) =>
+        {
+            // Return a custom error response.
+            c.Response.StatusCode = 403;
+            await c.Response.WriteAsync("Things borked.");
+        }).Build();
+
+    private WsProxyOptions _wsOptions = WsProxyOptionsBuilder.Instance
+        .WithBufferSize(8192)
+        .WithIntercept(context => new ValueTask<bool>(context.WebSockets.WebSocketRequestedProtocols.Contains("interceptedProtocol")))
+        .WithBeforeConnect((context, wso) =>
+        {
+            wso.AddSubProtocol("myRandomProto");
+            return Task.CompletedTask;
+        })
+        .WithHandleFailure(async (context, e) =>
+        {
+            context.Response.StatusCode = 599;
+            await context.Response.WriteAsync("Failure handled.");
+        }).Build();
+    
     [Route("api/posts/{postId}")]
     public Task GetPosts(int postId)
     {
-        var options = ProxyOptions.Instance
-            .WithShouldAddForwardedHeaders(false)
-            .WithHttpClientName("MyCustomClient")
-            .WithIntercept(async context =>
-            {
-                if(c.Connection.RemotePort == 7777)
-                {
-                    c.Response.StatusCode = 300;
-                    await c.Response.WriteAsync("I don't like this port, so I am not proxying this request!");
-                    return true;
-                }
-
-                return false;
-            })
-            .WithBeforeSend((c, hrm) =>
-            {
-                // Set something that is needed for the downstream endpoint.
-                hrm.Headers.Authorization = new AuthenticationHeaderValue("Basic");
-
-                return Task.CompletedTask;
-            })
-            .WithAfterReceive((c, hrm) =>
-            {
-                // Alter the content in  some way before sending back to client.
-                var newContent = new StringContent("It's all greek...er, Latin...to me!");
-                hrm.Content = newContent;
-
-                return Task.CompletedTask;
-            })
-            .WithHandleFailure(async (c, e) =>
-            {
-                // Return a custom error response.
-                c.Response.StatusCode = 403;
-                await c.Response.WriteAsync("Things borked.");
-            });
-
-        return this.ProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        return this.ProxyAsync("http://myhttpendpoint.com", "ws://mywsendpoint.com", _httpOptions, _wsOptions);
     }
 }
-```
-
-#### Application Builder
-
-You can define a proxy over a specific endpoint in `Configure(IApplicationBuilder app, IHostingEnvironment env)`.  The arguments are passed to the underlying lambda as a `Dictionary`.
-
-```csharp
-app.UseProxy("api/{arg1}/{arg2}", async (args) => {
-    // Get the proxied address.
-    return await SomeCallThatComputesAUrl(args["arg1"], args["arg2"]);
-});
-```
-
-#### `ProxyRoute` Attribute
-
-You can also make the proxy look and feel almost like a route, but as part of a static method.
-
-First, add the middleware.
-
-```csharp
-public void Configure(IApplicationBuilder app, IHostingEnvironment env)
-{
-    ...
-    app.UseProxies();
-    ...
-}
-```
-
-Then, create a static method which returns a `Task<string>` or `string` (where the `string` is the URI to proxy).
-
-```csharp
-[ProxyRoute("api/posts/{arg1}/{arg2}")]
-public static async Task<string> GetProxy(string arg1, string arg2)
-{
-    var uri = await SomeCallThatComputesAUrl(arg1, arg2);
-    return uri;
-}
-
-[ProxyRoute("api/comments/{postId}")]
-public static async Task<string> GetComments(int postId) => $"https://jsonplaceholder.typicode.com/posts/{postId}";
 ```
 
 ## License

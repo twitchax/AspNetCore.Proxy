@@ -3,16 +3,20 @@
   <PropertyGroup>
     <AssemblyName>AspNetCore.Proxy</AssemblyName>
     <PackageId>AspNetCore.Proxy</PackageId>
-    <Version>3.1.1</Version>
+    <Version>4.0.0</Version>
     <PackageProjectUrl>https://github.com/twitchax/aspnetcore.proxy</PackageProjectUrl>
 
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>8.0</LangVersion>
+    <TargetFrameworks>netcoreapp3.1;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <IsTestProject>false</IsTestProject>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
   
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'netcoreapp3.1'">
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="2.2.0" />

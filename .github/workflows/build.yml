@@ -11,7 +11,7 @@ jobs:
     - name: Setup .NET Environment.
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '3.0.100'
+        dotnet-version: '3.1.100'
     - name: Build and run tests.
       run: dotnet test --collect:"XPlat Code Coverage"
     - name: Make artifacts directory.
@@ -28,7 +28,7 @@ jobs:
         name: artifacts
         path: artifacts
     - name: Upload code coverage to codecov.io.
-      uses: codecov/codecov-action@v1.0.2
+      uses: codecov/codecov-action@v1.0.3
       with:
         token: ${{secrets.CODECOV_KEY}}
         file: ./artifacts/coverage.cobertura.xml

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 
 namespace AspNetCore.Proxy.Tests
 {
@@ -32,7 +33,7 @@ namespace AspNetCore.Proxy.Tests
 
             if(!result.EndOfMessage)
                 throw new InvalidOperationException($"Must send a short message (less than {BUFFER_SIZE / 8} characters).");
-            
+
             return Encoding.UTF8.GetString(buffer, 0, result.Count);
         }
 
@@ -54,7 +55,7 @@ namespace AspNetCore.Proxy.Tests
                 {
                     throw new Exception();
                 }
-                
+
                 // Basically, this server just always sends back a message that is the message it received wrapped with "[]".
                 await socket.SendShortMessageAsync($"[{message}]");
             }
@@ -63,7 +64,9 @@ namespace AspNetCore.Proxy.Tests
         internal static async Task HttpBoomerang(this HttpContext context)
         {
             var message = await new StreamReader(context.Request.Body).ReadToEndAsync();
-            await context.Response.WriteAsync($"[{message}]");
+            var uri = context.Request.GetDisplayUrl();
+
+            await context.Response.WriteAsync($"({uri})[{message}]");
         }
     }
 }
