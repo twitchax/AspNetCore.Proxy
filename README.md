@@ -100,7 +100,7 @@ public class MyController : Controller
 }
 ```
 
-> NOTE: The body of the request should not be consumed by the controller (i.e., the controller should not have any `[FromBody]` parameters]); 
+> NOTE: The body of the request should not be consumed by the controller (i.e., the controller should not have any `[FromBody]` parameters); 
 > otherwise, the proxy operation will fail.  This is due to the fact that the body is read from a `Stream`, and that `Stream` is progressed 
 > when the body is read.
 
