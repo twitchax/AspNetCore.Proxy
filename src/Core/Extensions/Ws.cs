@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using AspNetCore.Proxy.Builders;
 using Microsoft.AspNetCore.Http;
 
-namespace AspNetCore.Proxy.Extensions
+namespace AspNetCore.Proxy
 {
     internal static class WsExtensions
     {

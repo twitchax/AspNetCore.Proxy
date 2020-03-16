@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 // For unit tests.
 [assembly:InternalsVisibleTo("AspNetCore.Proxy.Tests")]
 
-namespace AspNetCore.Proxy.Extensions
+namespace AspNetCore.Proxy
 {
     /// <summary>
     /// Set of basic extension methods for ASP.NET Core.

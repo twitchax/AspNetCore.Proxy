@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using AspNetCore.Proxy.Extensions;
+using AspNetCore.Proxy;
 using Microsoft.AspNetCore.Http;
 
 namespace AspNetCore.Proxy.Tests

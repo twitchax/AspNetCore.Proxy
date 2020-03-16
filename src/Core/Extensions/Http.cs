@@ -8,7 +8,7 @@ using AspNetCore.Proxy.Builders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace AspNetCore.Proxy.Extensions
+namespace AspNetCore.Proxy
 {
     internal static class HttpExtensions
     {
