@@ -85,6 +85,25 @@ app.UseProxies(proxies =>
 });
 ```
 
+#### Route At Startup with Custom HttpClientHandler
+
+ASP.NET Core allows you to configure the behavior of its HTTP client objects by registering a named HttpClient with its own HttpClientHandler, which can then be referred to by name elsewhere.  This can be used to support features such as server certificate custom validation.  The UseProxies setup supports using such a named client:
+
+```csharp
+proxies.Map( "/api/v1/...", proxy => proxy.UseHttp( 
+    (context, args) => ...,
+    builder => builder.WithHttpClientName("myClientName")));
+```
+...where "myClientName" was previously registered as:
+```csharp
+services
+    .AddHttpClient("myClientName")
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler() {
+        ServerCertificateCustomValidationCallback = MyValidateCertificateMethod,
+        UseDefaultCredentials = true
+    });
+```
+
 #### Existing Controller
 
 You can define a proxy over a specific endpoint on an existing `Controller` by leveraging the `ProxyAsync` extension methods.
@@ -128,6 +147,8 @@ public class MyController : Controller
     }
 }
 ```
+
+
 
 #### Uber Example
 
