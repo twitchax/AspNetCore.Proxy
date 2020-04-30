@@ -148,8 +148,6 @@ public class MyController : Controller
 }
 ```
 
-
-
 #### Uber Example
 
 You can also pass special options that apply when the proxy operation occurs.
