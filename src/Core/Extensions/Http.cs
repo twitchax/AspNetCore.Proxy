@@ -19,22 +19,31 @@ namespace AspNetCore.Proxy
 
             try
             {
-                if(context.WebSockets.IsWebSocketRequest)
-                    throw new InvalidOperationException("A WebSocket request cannot be routed as an HTTP proxy operation.");
-
-                if(!uri.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Only forwarded addresses starting with 'http://' or 'https://' are supported for HTTP requests.");
+                var httpClient = context.RequestServices
+                    .GetService<IHttpClientFactory>()
+                    .CreateClient(options?.HttpClientName ?? Helpers.HttpProxyClientName);
 
                 // If `true`, this proxy call has been intercepted.
                 if(options?.Intercept != null && await options.Intercept(context).ConfigureAwait(false))
                     return;
+
+                if(context.WebSockets.IsWebSocketRequest)
+                    throw new InvalidOperationException("A WebSocket request cannot be routed as an HTTP proxy operation.");
+
+                if(!uri.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    if(httpClient.BaseAddress != null)
+                        uri = $"{httpClient.BaseAddress}{uri}";
+                    else
+                        throw new InvalidOperationException("Only forwarded addresses starting with 'http://' or 'https://' are supported for HTTP requests.");
+                }
 
                 var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
 
                 if(options?.BeforeSend != null)
                     await options.BeforeSend(context, proxiedRequest).ConfigureAwait(false);
                 var proxiedResponse = await context
-                    .SendProxiedHttpRequestAsync(proxiedRequest, options?.HttpClientName ?? Helpers.HttpProxyClientName)
+                    .SendProxiedHttpRequestAsync(proxiedRequest, httpClient)
                     .ConfigureAwait(false);
 
                 if(options?.AfterReceive != null)
@@ -94,12 +103,9 @@ namespace AspNetCore.Proxy
             return requestMessage;
         }
 
-        private static Task<HttpResponseMessage> SendProxiedHttpRequestAsync(this HttpContext context, HttpRequestMessage message, string httpClientName)
+        private static Task<HttpResponseMessage> SendProxiedHttpRequestAsync(this HttpContext context, HttpRequestMessage message, HttpClient httpClient)
         {
-            return context.RequestServices
-                .GetService<IHttpClientFactory>()
-                .CreateClient(httpClientName)
-                .SendAsync(message, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+            return httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         }
 
         private static Task WriteProxiedHttpResponseAsync(this HttpContext context, HttpResponseMessage responseMessage)

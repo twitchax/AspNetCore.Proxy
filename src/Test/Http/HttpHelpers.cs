@@ -23,11 +23,8 @@ namespace AspNetCore.Proxy.Tests
             services.AddRouting();
             services.AddProxies();
             services.AddControllers();
-            services.AddHttpClient("CustomClient", c =>
-            {
-                // Force a timeout.
-                c.Timeout = TimeSpan.FromMilliseconds(1);
-            });
+            services.AddHttpClient("TimeoutClient", c => c.Timeout = TimeSpan.FromMilliseconds(0.001));
+            services.AddHttpClient("BaseAddressClient", c => c.BaseAddress = new Uri("https://jsonplaceholder.typicode.com"));
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -142,14 +139,24 @@ namespace AspNetCore.Proxy.Tests
             return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
 
-        [Route("api/controller/customclient/{postId}")]
-        public Task GetWithCustomClient(int postId)
+        [Route("api/controller/timeoutclient/{postId}")]
+        public Task GetWithTimeoutClient(int postId)
         {
             var options = HttpProxyOptionsBuilder.Instance
-                .WithHttpClientName("CustomClient")
+                .WithHttpClientName("TimeoutClient")
                 .Build();
 
             return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
+        }
+
+        [Route("api/controller/baseaddressclient/{postId}")]
+        public Task GetWithBaseAddressClient(int postId)
+        {
+            var options = HttpProxyOptionsBuilder.Instance
+                .WithHttpClientName("BaseAddressClient")
+                .Build();
+
+            return this.HttpProxyAsync($"posts/{postId}", options);
         }
 
         [Route("api/controller/badresponse/{postId}")]
