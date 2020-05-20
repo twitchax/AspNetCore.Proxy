@@ -6,7 +6,7 @@ namespace AspNetCore.Proxy.Endpoints
     public static class RoundRobin
     {
         /// <summary>
-        /// A helper that method the "round robins" over a set of endpoints.
+        /// A helper method that "round robins" over a set of endpoints.
         /// </summary>
         /// <param name="endpoints">The set of endpoints to "round robin" over.</param>
         /// <returns>An <see cref="EndpointComputerToString"/> that "round robins" over the provided endpoints.</returns>
