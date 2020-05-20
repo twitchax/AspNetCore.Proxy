@@ -47,7 +47,7 @@ public void ConfigureServices(IServiceCollection services)
 You can run a proxy over all endpoints by using `RunProxy` in your `Configure` method.
 
 ```csharp
-app.RunProxy(proxy => proxy.UseHttp("http://google.com/"));
+app.RunProxy(proxy => proxy.UseHttp("http://google.com"));
 ```
 
 In addition, you can route this proxy depending on the context.  You can return a `string` or `ValueTask<string>` from the computer.

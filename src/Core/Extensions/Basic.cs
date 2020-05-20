@@ -339,6 +339,10 @@ namespace AspNetCore.Proxy
             return async (context, args) =>
             {
                 var endpoint = await GetEndpointFromComputerAsync(context, endpointComputer).ConfigureAwait(false);
+
+                // Remove trailing slashes when `RunProxy` endpoints are computed, since paths are appended ot them.
+                endpoint = endpoint.TrimTrailingSlashes();
+
                 return $"{endpoint}{context.Request.Path}{context.Request.QueryString}";
             };
         }

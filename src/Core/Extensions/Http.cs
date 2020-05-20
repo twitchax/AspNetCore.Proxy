@@ -72,8 +72,7 @@ namespace AspNetCore.Proxy
                 !HttpMethods.IsDelete(requestMethod) &&
                 !HttpMethods.IsTrace(requestMethod))
             {
-                var streamContent = new StreamContent(request.Body);
-                requestMessage.Content = streamContent;
+                requestMessage.Content = new StreamContent(request.Body);
             }
 
             // Copy the request headers.
