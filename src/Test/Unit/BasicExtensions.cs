@@ -30,7 +30,7 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
-        public async Task CanRemoveTrailingSlashes()
+        public void CanRemoveTrailingSlashes()
         {
             const string expected = "http://myaddresswithtoomanyslashes.com";
 
