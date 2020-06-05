@@ -45,7 +45,8 @@ namespace AspNetCore.Proxy
 
         #region ApplicationBuilder Extensions
 
-        /// <summary>
+       #if NETSTANDARD2_0
+       /// <summary>
         /// Adds proxy middleware to the application builder.
         /// </summary>
         /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
@@ -58,7 +59,7 @@ namespace AspNetCore.Proxy
                 var proxiesBuilder = ProxiesBuilder.Instance;
                 builderAction(proxiesBuilder);
 
-                foreach(var proxy in proxiesBuilder.Build())
+                foreach (var proxy in proxiesBuilder.Build())
                 {
                     builder.MapMiddlewareRoute(proxy.Route, proxyApp => proxyApp.Run(context => context.ExecuteProxyOperationAsync(proxy)));
                 }
@@ -66,7 +67,43 @@ namespace AspNetCore.Proxy
 
             return app;
         }
+#else
+        /// <summary>
+        /// Adds proxy middleware to the application builder.
+        /// </summary>
+        /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
+        /// <param name="builderAction">The builder action to set.  This takes the form `(<see cref="IProxiesBuilder"/>) => void`.</param>
+        /// <param name="endpointConventionBuilder">Allows access to the EndpointConventionBuilder.</param>
+        /// <returns>The current instance with the specified proxies builder.</returns>
+        public static IApplicationBuilder UseProxies(this IApplicationBuilder app, Action<IProxiesBuilder> builderAction, Action<IEndpointConventionBuilder> endpointConventionBuilder)
+        {
+            app.UseEndpoints(endpoints =>
+            {
+                var proxiesBuilder = ProxiesBuilder.Instance;
+                builderAction(proxiesBuilder);
 
+                foreach (var proxy in proxiesBuilder.Build())
+                {
+                    var proxyEndpoint = endpoints.Map(proxy.Route, context => context.ExecuteProxyOperationAsync(proxy));
+                    if (endpointConventionBuilder != null)
+                        endpointConventionBuilder.Invoke(proxyEndpoint);
+                }
+            });
+
+            return app;
+        }
+
+        /// <summary>
+        /// Adds proxy middleware to the application builder.
+        /// </summary>
+        /// <param name="app">The ASP.NET <see cref="IApplicationBuilder"/>.</param>
+        /// <param name="builderAction">The builder action to set.  This takes the form `(<see cref="IProxiesBuilder"/>) => void`.</param>
+        /// <returns>The current instance with the specified proxies builder.</returns>
+        public static IApplicationBuilder UseProxies(this IApplicationBuilder app, Action<IProxiesBuilder> builderAction)
+        {
+            return UseProxies(app, builderAction, null);
+        }
+#endif
         /// <summary>
         /// Terminating middleware which creates a proxy over a specified endpoint.
         /// </summary>
