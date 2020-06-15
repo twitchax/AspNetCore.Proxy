@@ -47,7 +47,7 @@ public void ConfigureServices(IServiceCollection services)
 You can run a proxy over all endpoints by using `RunProxy` in your `Configure` method.
 
 ```csharp
-app.RunProxy(proxy => proxy.UseHttp("http://google.com/"));
+app.RunProxy(proxy => proxy.UseHttp("http://google.com"));
 ```
 
 In addition, you can route this proxy depending on the context.  You can return a `string` or `ValueTask<string>` from the computer.
@@ -83,6 +83,25 @@ app.UseProxies(proxies =>
     // Computed to string.
     proxies.Map("api/comments/string/{postId}", proxy => proxy.UseHttp((_, args) => $"https://jsonplaceholder.typicode.com/comments/{args["postId"]}"));
 });
+```
+
+#### Route At Startup with Custom HttpClientHandler
+
+ASP.NET Core allows you to configure the behavior of its HTTP client objects by registering a named HttpClient with its own HttpClientHandler, which can then be referred to by name elsewhere.  This can be used to support features such as server certificate custom validation.  The UseProxies setup supports using such a named client:
+
+```csharp
+proxies.Map( "/api/v1/...", proxy => proxy.UseHttp( 
+    (context, args) => ...,
+    builder => builder.WithHttpClientName("myClientName")));
+```
+...where "myClientName" was previously registered as:
+```csharp
+services
+    .AddHttpClient("myClientName")
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler() {
+        ServerCertificateCustomValidationCallback = MyValidateCertificateMethod,
+        UseDefaultCredentials = true
+    });
 ```
 
 #### Existing Controller

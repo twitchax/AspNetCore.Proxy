@@ -28,5 +28,15 @@ namespace AspNetCore.Proxy.Tests
             AspNetCore.Proxy.Basic.RunWsProxy(app, (c, a) =>  endpoint);
             AspNetCore.Proxy.Basic.RunWsProxy(app, endpoint);
         }
+
+        [Fact]
+        public void CanRemoveTrailingSlashes()
+        {
+            const string expected = "http://myaddresswithtoomanyslashes.com";
+
+            var result = AspNetCore.Proxy.Helpers.TrimTrailingSlashes($"{expected}////");
+
+            Assert.Equal(expected, result);
+        }
     }
 }

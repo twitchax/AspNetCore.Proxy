@@ -34,7 +34,7 @@ namespace AspNetCore.Proxy
         /// Gets a 'new` instance initialized from `this` instance.
         /// </summary>
         /// <returns>A `new` instance of <typeparamref name="TInterface"/> initialized from `this` instance.</returns>
-        /// 
+        ///
         TInterface New();
 
         /// <summary>
@@ -48,5 +48,24 @@ namespace AspNetCore.Proxy
     {
         internal static readonly string HttpProxyClientName = "AspNetCore.Proxy.HttpProxyClient";
         internal static readonly string[] WebSocketNotForwardedHeaders = new[] { "Connection", "Host", "Upgrade", "Sec-WebSocket-Accept", "Sec-WebSocket-Protocol", "Sec-WebSocket-Key", "Sec-WebSocket-Version", "Sec-WebSocket-Extensions" };
+
+        internal static string TrimTrailingSlashes(this string s)
+        {
+            if(!s.EndsWith("/"))
+                return s;
+
+            var span = s.AsSpan();
+            var count = 0;
+
+            for(int k = span.Length - 1; k >= 0; k--)
+            {
+                if(s[k] == '/')
+                    count++;
+                else
+                    break;
+            }
+
+            return s.Substring(0, s.Length - count);
+        }
     }
 }

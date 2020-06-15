@@ -169,9 +169,19 @@ namespace AspNetCore.Proxy.Tests
         [Fact]
         public async Task CanProvideCustomClient()
         {
-            var response = await _client.GetAsync("api/controller/customclient/1");
+            var response = await _client.GetAsync("api/controller/timeoutclient/1");
             // Expects failure because the HTTP client is set to low timeout.
             Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task CanProvideBaseAddressClient()
+        {
+            var response = await _client.GetAsync("api/controller/baseaddressclient/1");
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            Assert.Contains("sunt aut facere repellat provident occaecati excepturi optio reprehenderit", JObject.Parse(responseString).Value<string>("title"));
         }
     }
 }
