@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using Microsoft.AspNetCore.Http;
 
 namespace AspNetCore.Proxy
@@ -66,6 +70,11 @@ namespace AspNetCore.Proxy
             }
 
             return s.Substring(0, s.Length - count);
+        }
+
+        internal static StreamContent ToStreamContent(this IFormCollection collection)
+        {
+            return new StreamContent(new MemoryStream(HttpUtility.UrlDecodeToBytes(string.Join("&", collection.Select(f => $"{f.Key}={f.Value}")))));
         }
     }
 }

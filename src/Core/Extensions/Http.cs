@@ -81,11 +81,14 @@ namespace AspNetCore.Proxy
                 !HttpMethods.IsDelete(requestMethod) &&
                 !HttpMethods.IsTrace(requestMethod))
             {
-                requestMessage.Content = new StreamContent(request.Body);
+                if (request.HasFormContentType)
+                    requestMessage.Content = request.Form.ToStreamContent();
+                else
+                    requestMessage.Content = new StreamContent(request.Body);
             }
 
             // Copy the request headers.
-            foreach (var header in context.Request.Headers)
+            foreach (var header in request.Headers)
             {
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
@@ -98,7 +101,7 @@ namespace AspNetCore.Proxy
             // Set destination and method.
             requestMessage.Headers.Host = uri.Authority;
             requestMessage.RequestUri = uri;
-            requestMessage.Method = new HttpMethod(request.Method);
+            requestMessage.Method = new HttpMethod(requestMethod);
 
             return requestMessage;
         }
