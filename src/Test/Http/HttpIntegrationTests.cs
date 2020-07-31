@@ -68,6 +68,21 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task CanProxyControllerCatchAllPostWithFormRequest()
+        {
+            var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "xyz", "123" }, { "abc", "321" } });
+            var response = await _client.PostAsync("api/catchall/posts", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var json = JObject.Parse(responseString);
+
+            Assert.Contains("101", json.Value<string>("id"));
+            Assert.Equal("123", json["xyz"]);
+            Assert.Equal("321", json["abc"]);
+        }
+
+        [Fact]
         public async Task CanProxyControllerCatchAll()
         {
             var response = await _client.GetAsync("api/catchall/posts/1");
