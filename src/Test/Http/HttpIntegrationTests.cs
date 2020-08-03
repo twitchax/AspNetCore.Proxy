@@ -68,6 +68,35 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task CanProxyControllerPostWithFormAndFilesRequest()
+        {
+            var content = new MultipartFormDataContent();
+            content.Add(new StringContent("123"), "xyz");
+            content.Add(new StringContent("456"), "xyz");
+            content.Add(new StringContent("321"), "abc");
+            const string fileString = "This is a test file.";
+            var fileContent = new StreamContent(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(fileString)));
+            content.Add(fileContent, "testFile", "Test file.txt");
+            var response = await _client.PostAsync("api/multipart", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var json = JObject.Parse(responseString);
+
+            var form = Assert.IsAssignableFrom<JObject>(json["form"]);
+            Assert.Equal(2, form.Count);
+            var xyz = Assert.IsAssignableFrom<JArray>(form["xyz"]);
+            Assert.Equal(2, xyz.Count);
+            Assert.Equal("123", xyz[0]);
+            Assert.Equal("456", xyz[1]);
+            Assert.Equal("321", form["abc"]);
+
+            var files = Assert.IsAssignableFrom<JObject>(json["files"]);
+            Assert.Single(files);
+            Assert.Equal(fileString, files["testFile"]);
+        }
+
+        [Fact]
         public async Task CanProxyControllerCatchAllPostWithFormRequest()
         {
             var content = new FormUrlEncodedContent(new Dictionary<string, string> { { "xyz", "123" }, { "abc", "321" } });

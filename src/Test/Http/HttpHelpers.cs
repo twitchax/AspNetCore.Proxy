@@ -81,6 +81,12 @@ namespace AspNetCore.Proxy.Tests
             return this.HttpProxyAsync("https://jsonplaceholder.typicode.com/posts");
         }
 
+        [Route("api/multipart")]
+        public Task ProxyPostMultipartRequest()
+        {
+            return this.HttpProxyAsync("https://httpbin.org/post");
+        }
+
         [Route("api/catchall/{**rest}")]
         public Task ProxyCatchAll(string rest)
         {
