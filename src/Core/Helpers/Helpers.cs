@@ -85,7 +85,7 @@ namespace AspNetCore.Proxy
             var boundaryIndex = contentType.IndexOf(boundary, StringComparison.OrdinalIgnoreCase);
             if (boundaryIndex < 0)
                 throw new Exception("Could not find multipart boundary");
-            var delimiter = contentType.Substring(boundaryIndex + boundary.Length);
+            var delimiter = contentType.Substring(boundaryIndex + boundary.Length).Trim('"');
 
             var multipart = new MultipartFormDataContent(delimiter);
             foreach (var formVal in collection)
