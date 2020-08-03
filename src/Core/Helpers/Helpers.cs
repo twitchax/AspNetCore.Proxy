@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace AspNetCore.Proxy
 {
@@ -72,9 +73,34 @@ namespace AspNetCore.Proxy
             return s.Substring(0, s.Length - count);
         }
 
-        internal static StreamContent ToStreamContent(this IFormCollection collection)
+        internal static HttpContent ToHttpContent(this IFormCollection collection, string contentType)
         {
-            return new StreamContent(new MemoryStream(HttpUtility.UrlDecodeToBytes(string.Join("&", collection.Select(f => $"{f.Key}={f.Value}")))));
+            if (string.IsNullOrWhiteSpace(contentType) || contentType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+                return new FormUrlEncodedContent(collection.SelectMany(formItemList => formItemList.Value.Select(value => new KeyValuePair<string, string>(formItemList.Key, value))));
+
+            if (!contentType.StartsWith("multipart/form-data;", StringComparison.OrdinalIgnoreCase))
+                throw new Exception($"Unknown form content type \"{contentType[0]}\"");
+
+            const string boundary = "boundary=";
+            var boundaryIndex = contentType.IndexOf(boundary, StringComparison.OrdinalIgnoreCase);
+            if (boundaryIndex < 0)
+                throw new Exception("Could not find multipart boundary");
+            var delimiter = contentType.Substring(boundaryIndex + boundary.Length);
+
+            var multipart = new MultipartFormDataContent(delimiter);
+            foreach (var formVal in collection)
+            {
+                foreach (var value in formVal.Value)
+                    multipart.Add(new StringContent(value), formVal.Key);
+            }
+            foreach (var file in collection.Files)
+            {
+                var content = new StreamContent(file.OpenReadStream());
+                foreach (var header in file.Headers)
+                    content.Headers.TryAddWithoutValidation(header.Key, (IEnumerable<string>)header.Value);
+                multipart.Add(content, file.Name, file.FileName);
+            }
+            return multipart;
         }
     }
 }

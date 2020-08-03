@@ -74,6 +74,7 @@ namespace AspNetCore.Proxy
 
             var requestMessage = new HttpRequestMessage();
             var requestMethod = request.Method;
+            var usesStreamContent = true; // When using other content types, they specify the Content-Type header, and may also change the Content-Length.
 
             // Write to request content, when necessary.
             if (!HttpMethods.IsGet(requestMethod) &&
@@ -82,7 +83,10 @@ namespace AspNetCore.Proxy
                 !HttpMethods.IsTrace(requestMethod))
             {
                 if (request.HasFormContentType)
-                    requestMessage.Content = request.Form.ToStreamContent();
+                {
+                    usesStreamContent = false;
+                    requestMessage.Content = request.Form.ToHttpContent(request.ContentType);
+                }
                 else
                     requestMessage.Content = new StreamContent(request.Body);
             }
@@ -90,6 +94,8 @@ namespace AspNetCore.Proxy
             // Copy the request headers.
             foreach (var header in request.Headers)
             {
+                if (!usesStreamContent && (header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) || header.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)))
+                    continue;
                 if (!requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
                     requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
