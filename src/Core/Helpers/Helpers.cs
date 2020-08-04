@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
@@ -73,19 +74,29 @@ namespace AspNetCore.Proxy
             return s.Substring(0, s.Length - count);
         }
 
-        internal static HttpContent ToHttpContent(this IFormCollection collection, string contentType)
+        internal static HttpContent ToHttpContent(this IFormCollection collection, string contentTypeHeader)
         {
-            if (string.IsNullOrWhiteSpace(contentType) || contentType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+            // Form content types resource: https://stackoverflow.com/questions/4526273/what-does-enctype-multipart-form-data-mean/28380690
+            // There are three possible form content types:
+            // - text/plain, which should never be used and this does not handle (a request with that will not have IsFormContentType true anyway)
+            // - application/x-www-form-urlencoded, which doesn't handle file uploads and escapes any special characters
+            // - multipart/form-data, which does handle files and doesn't require any escaping, but is quite bulky for short data (due to using some content headers for each value, and a boundary sequence between them)
+
+            // A single form element can have multiple values. When sending them they are handled as separate items with the same name, not a singe item with multiple values.
+            // For example, a=1&a=2.
+
+            var contentType = MediaTypeHeaderValue.Parse(contentTypeHeader);
+
+            if (contentType.MediaType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)) // specification: https://url.spec.whatwg.org/#concept-urlencoded
                 return new FormUrlEncodedContent(collection.SelectMany(formItemList => formItemList.Value.Select(value => new KeyValuePair<string, string>(formItemList.Key, value))));
 
-            if (!contentType.StartsWith("multipart/form-data;", StringComparison.OrdinalIgnoreCase))
-                throw new Exception($"Unknown form content type \"{contentType[0]}\"");
+            if (!contentType.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase))
+                throw new Exception($"Unknown form content type \"{contentType.MediaType}\"");
 
-            const string boundary = "boundary=";
-            var boundaryIndex = contentType.IndexOf(boundary, StringComparison.OrdinalIgnoreCase);
-            if (boundaryIndex < 0)
-                throw new Exception("Could not find multipart boundary");
-            var delimiter = contentType.Substring(boundaryIndex + boundary.Length).Trim('"');
+            // multipart/form-data specification https://tools.ietf.org/html/rfc7578
+            // It has each value separated by a boundary sequence, which is specified in the Content-Type header.
+            // As a proxy it is probably best to reuse the boundary used in the original request as it is not necessarily random.
+            var delimiter = contentType.Parameters.Single(p => p.Name.Equals("boundary", StringComparison.OrdinalIgnoreCase)).Value.Trim('"');
 
             var multipart = new MultipartFormDataContent(delimiter);
             foreach (var formVal in collection)
