@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 
 namespace AspNetCore.Proxy
 {
@@ -76,6 +74,7 @@ namespace AspNetCore.Proxy
 
         internal static HttpContent ToHttpContent(this IFormCollection collection, string contentTypeHeader)
         {
+            // @PreferLinux:
             // Form content types resource: https://stackoverflow.com/questions/4526273/what-does-enctype-multipart-form-data-mean/28380690
             // There are three possible form content types:
             // - text/plain, which should never be used and this does not handle (a request with that will not have IsFormContentType true anyway)
@@ -91,7 +90,7 @@ namespace AspNetCore.Proxy
                 return new FormUrlEncodedContent(collection.SelectMany(formItemList => formItemList.Value.Select(value => new KeyValuePair<string, string>(formItemList.Key, value))));
 
             if (!contentType.MediaType.Equals("multipart/form-data", StringComparison.OrdinalIgnoreCase))
-                throw new Exception($"Unknown form content type \"{contentType.MediaType}\"");
+                throw new Exception($"Unknown form content type `{contentType.MediaType}`.");
 
             // multipart/form-data specification https://tools.ietf.org/html/rfc7578
             // It has each value separated by a boundary sequence, which is specified in the Content-Type header.

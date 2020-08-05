@@ -88,7 +88,9 @@ namespace AspNetCore.Proxy
                     requestMessage.Content = request.Form.ToHttpContent(request.ContentType);
                 }
                 else
+                {
                     requestMessage.Content = new StreamContent(request.Body);
+                }
             }
 
             // Copy the request headers.
