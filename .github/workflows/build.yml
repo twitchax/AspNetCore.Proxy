@@ -11,7 +11,7 @@ jobs:
     - name: Setup .NET Environment.
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '3.1.101'
+        dotnet-version: '5.0.202'
     - name: Build and run tests.
       run: dotnet test --collect:"XPlat Code Coverage"
     - name: Make artifacts directory.
