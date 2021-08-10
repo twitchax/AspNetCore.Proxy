@@ -12,7 +12,7 @@ namespace AspNetCore.Proxy
 {
     internal static class HttpExtensions
     {
-        internal static async Task ExecuteHttpProxyOperationAsync(this HttpContext context, HttpProxy httpProxy)
+        internal static async Task<bool> ExecuteHttpProxyOperationAsync(this HttpContext context, HttpProxy httpProxy)
         {
             var uri = await context.GetEndpointFromComputerAsync(httpProxy.EndpointComputer).ConfigureAwait(false);
             var options = httpProxy.Options;
@@ -23,9 +23,14 @@ namespace AspNetCore.Proxy
                     .GetService<IHttpClientFactory>()
                     .CreateClient(options?.HttpClientName ?? Helpers.HttpProxyClientName);
 
+                if (options?.Filter != null && !options.Filter(context))
+                {
+                    return false;
+                }
+                
                 // If `true`, this proxy call has been intercepted.
                 if(options?.Intercept != null && await options.Intercept(context).ConfigureAwait(false))
-                    return;
+                    return true;
 
                 if(context.WebSockets.IsWebSocketRequest)
                     throw new InvalidOperationException("A WebSocket request cannot be routed as an HTTP proxy operation.");
@@ -49,6 +54,7 @@ namespace AspNetCore.Proxy
                 if(options?.AfterReceive != null)
                     await options.AfterReceive(context, proxiedResponse).ConfigureAwait(false);
                 await context.WriteProxiedHttpResponseAsync(proxiedResponse).ConfigureAwait(false);
+               
             }
             catch (Exception e)
             {
@@ -59,12 +65,15 @@ namespace AspNetCore.Proxy
                         // If the failures are not caught, then write a generic response.
                         context.Response.StatusCode = 502 /* BAD GATEWAY */;
                         await context.Response.WriteAsync($"Request could not be proxied.\n\n{e.Message}\n\n{e.StackTrace}").ConfigureAwait(false);
-                        return;
+                        
                     }
-
-                    await options.HandleFailure(context, e).ConfigureAwait(false);
+                    else
+                    {
+                        await options.HandleFailure(context, e).ConfigureAwait(false);
+                    }
                 }
             }
+            return true;
         }
 
         private static HttpRequestMessage CreateProxiedHttpRequest(this HttpContext context, string uriString, bool shouldAddForwardedHeaders)
