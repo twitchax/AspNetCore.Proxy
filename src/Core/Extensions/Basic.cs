@@ -332,7 +332,8 @@ namespace AspNetCore.Proxy
             await context.Response.WriteAsync($"Request could not be proxied.\n\nThe {requestType} request cannot be proxied because the underlying proxy definition does not have a definition of that type.").ConfigureAwait(false);
         }
 
-        internal static ValueTask<string> GetEndpointFromComputerAsync(this HttpContext context, EndpointComputerToValueTask computer) => computer(context, context.GetRouteData().Values);
+        internal static ValueTask<string> GetEndpointFromComputerAsync(this HttpContext context, EndpointComputerToValueTask computer) =>
+            computer(context, (context.GetRouteData()?.Values as IDictionary<string, object>) ?? new Dictionary<string, object>());
 
         internal static EndpointComputerToValueTask GetRunProxyComputer(EndpointComputerToValueTask endpointComputer)
         {
