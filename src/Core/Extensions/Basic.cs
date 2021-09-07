@@ -333,7 +333,7 @@ namespace AspNetCore.Proxy
         }
 
         internal static ValueTask<string> GetEndpointFromComputerAsync(this HttpContext context, EndpointComputerToValueTask computer) =>
-            computer(context, (context.GetRouteData()?.Values as IDictionary<string, object>) ?? new Dictionary<string, object>());
+            computer(context, context.GetRouteData()?.Values);
 
         internal static EndpointComputerToValueTask GetRunProxyComputer(EndpointComputerToValueTask endpointComputer)
         {

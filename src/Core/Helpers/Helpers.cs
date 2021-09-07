@@ -23,7 +23,7 @@ namespace AspNetCore.Proxy
     /// This takes the form `(<see cref="HttpContext"/>, <see cref="IDictionary{String, Object}"/>) => <see cref="ValueTask{String}"/>`.
     /// </summary>
     /// <param name="context">The HTTP context of the current request at runtime.</param>
-    /// <param name="arguments">The arguments of the current request at runtime.</param>
+    /// <param name="arguments">The arguments of the current request at runtime.  This may be `null`, if the route data is missing.</param>
     /// <returns>The endpoint string as a <see cref="ValueTask{String}"/>.</returns>
     public delegate ValueTask<string> EndpointComputerToValueTask(HttpContext context, IDictionary<string, object> arguments);
 
