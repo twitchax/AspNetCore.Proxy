@@ -160,10 +160,10 @@ public class MyController : Controller
         .WithHttpClientName("MyCustomClient")
         .WithIntercept(async context =>
         {
-            if(c.Connection.RemotePort == 7777)
+            if(context.Connection.RemotePort == 7777)
             {
-                c.Response.StatusCode = 300;
-                await c.Response.WriteAsync("I don't like this port, so I am not proxying this request!");
+                context.Response.StatusCode = 300;
+                await context.Response.WriteAsync("I don't like this port, so I am not proxying this request!");
                 return true;
             }
 
