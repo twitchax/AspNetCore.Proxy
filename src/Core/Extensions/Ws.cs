@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
@@ -70,7 +71,8 @@ namespace AspNetCore.Proxy
 
         private static async Task PumpWebSocket(WebSocket source, WebSocket destination, int bufferSize, CancellationToken cancellationToken)
         {
-            var buffer = new byte[bufferSize];
+            using var ms = new MemoryStream();
+            var receiveBuffer = WebSocket.CreateServerBuffer(bufferSize);
 
             while (true)
             {
@@ -78,29 +80,43 @@ namespace AspNetCore.Proxy
 
                 try
                 {
-                    result = await source.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken).ConfigureAwait(false);
+                    ms.SetLength(0);
+
+                    do
+                    {
+                        result = await source.ReceiveAsync(receiveBuffer, cancellationToken).ConfigureAwait(false);
+                        ms.Write(receiveBuffer.Array!, receiveBuffer.Offset, result.Count);
+                    }
+                    while (!result.EndOfMessage);
                 }
                 catch (Exception e)
                 {
                     var closeMessageBytes = Encoding.UTF8.GetBytes($"WebSocket failure.\n\n{e.Message}\n\n{e.StackTrace}");
                     var closeMessage = Encoding.UTF8.GetString(closeMessageBytes, 0, Math.Min(closeMessageBytes.Length, CloseMessageMaxSize));
                     await destination.CloseOutputAsync(WebSocketCloseStatus.EndpointUnavailable, closeMessage, cancellationToken).ConfigureAwait(false);
+
                     return;
                 }
 
-                if(destination.State != WebSocketState.Open && destination.State != WebSocketState.CloseReceived)
+                if (destination.State != WebSocketState.Open && destination.State != WebSocketState.CloseReceived)
+                {
                     return;
+                }
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await destination.CloseOutputAsync(source.CloseStatus.Value, source.CloseStatusDescription, cancellationToken).ConfigureAwait(false);
+                    var closeStatus = source.CloseStatus ?? WebSocketCloseStatus.Empty;
+                    await destination.CloseOutputAsync(closeStatus, source.CloseStatusDescription, cancellationToken).ConfigureAwait(false);
+
                     return;
                 }
+
+                var sendBuffer = new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
 
                 // TODO: Add handlers here to allow the developer to edit message before forwarding, and vice versa?
                 // Possibly in the future, if deemed useful.
 
-                await destination.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, cancellationToken).ConfigureAwait(false);
+                await destination.SendAsync(sendBuffer, result.MessageType, result.EndOfMessage, cancellationToken).ConfigureAwait(false);
             }
         }
     }
