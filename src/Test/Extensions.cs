@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
@@ -37,13 +36,37 @@ namespace AspNetCore.Proxy.Tests
             return Encoding.UTF8.GetString(buffer, 0, result.Count);
         }
 
+        internal static Task SendMessageAsync(this WebSocket socket, string message)
+        {
+            return socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(message)), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        internal static async Task<string> ReceiveMessageAsync(this WebSocket socket)
+        {
+            var buffer = new ArraySegment<byte>(new byte[BUFFER_SIZE]);
+            WebSocketReceiveResult result;
+
+            using var ms = new MemoryStream();
+            do
+            {
+                result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+                ms.Write(buffer.Array!, buffer.Offset, result.Count);
+            }
+            while (!result.EndOfMessage);
+
+            ms.Seek(0, SeekOrigin.Begin);
+
+            using var reader = new StreamReader(ms, Encoding.UTF8);
+            return await reader.ReadToEndAsync();
+        }
+
         internal static async Task SocketBoomerang(this HttpContext context)
         {
             var socket = await context.WebSockets.AcceptWebSocketAsync(SupportedProtocol);
 
             while(true)
             {
-                var message = await socket.ReceiveShortMessageAsync();
+                var message = await socket.ReceiveMessageAsync();
 
                 if(message == CloseMessage)
                 {
@@ -57,7 +80,7 @@ namespace AspNetCore.Proxy.Tests
                 }
 
                 // Basically, this server just always sends back a message that is the message it received wrapped with "[]".
-                await socket.SendShortMessageAsync($"[{message}]");
+                await socket.SendMessageAsync($"[{message}]");
             }
         }
 
