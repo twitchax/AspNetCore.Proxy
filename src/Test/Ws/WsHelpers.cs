@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using AspNetCore.Proxy;
 using Microsoft.AspNetCore.Http;
 
 namespace AspNetCore.Proxy.Tests
@@ -77,6 +77,15 @@ namespace AspNetCore.Proxy.Tests
                 .Build().RunAsync(token);
 
             return Task.WhenAll(proxiedServerTask, proxyServerTask);
+        }
+
+        internal static string GetRandomBase64String(int sizeInKb)
+        {
+            var rnd = new Random();
+            var b = new byte[sizeInKb * 1024];
+            rnd.NextBytes(b);
+
+            return Convert.ToBase64String(b);
         }
     }
 }

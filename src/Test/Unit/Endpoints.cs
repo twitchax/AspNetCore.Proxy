@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using AspNetCore.Proxy.Endpoints;
 using Xunit;
 

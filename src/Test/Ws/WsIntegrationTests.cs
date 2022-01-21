@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -60,6 +59,41 @@ namespace AspNetCore.Proxy.Tests
             var response1 = await _client.ReceiveShortMessageAsync();
             Assert.Equal(expected1, response1);
             var response2 = await _client.ReceiveShortMessageAsync();
+            Assert.Equal(expected2, response2);
+
+            // Receive close.
+            var result = await _client.ReceiveAsync(new ArraySegment<byte>(new byte[4096]), CancellationToken.None);
+            Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+            Assert.Equal(WebSocketCloseStatus.NormalClosure, result.CloseStatus);
+            Assert.Equal(Extensions.CloseDescription, result.CloseStatusDescription);
+
+            await _client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, Extensions.CloseDescription, CancellationToken.None);
+        }
+
+        [Theory]
+        [InlineData("ws://localhost:5001/ws")]
+        [InlineData("ws://localhost:5001/api/ws")]
+        [InlineData("ws://localhost:5001/api/ws2")]
+        public async Task CanDoWebSocketsWithLargeDataChunks(string server)
+        {
+            var send1 = WsHelpers.GetRandomBase64String(10);
+            var expected1 = $"[{send1}]";
+
+            var send2 = WsHelpers.GetRandomBase64String(500);
+            var expected2 = $"[{send2}]";
+
+            await _client.ConnectAsync(new Uri(server), CancellationToken.None);
+            Assert.Equal(Extensions.SupportedProtocol, _client.SubProtocol);
+
+            // Send a message.
+            await _client.SendMessageAsync(send1);
+            await _client.SendMessageAsync(send2);
+            await _client.SendShortMessageAsync(Extensions.CloseMessage);
+
+            // Receive responses.
+            var response1 = await _client.ReceiveMessageAsync();
+            Assert.Equal(expected1, response1);
+            var response2 = await _client.ReceiveMessageAsync();
             Assert.Equal(expected2, response2);
 
             // Receive close.
