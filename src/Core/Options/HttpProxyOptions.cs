@@ -35,6 +35,14 @@ namespace AspNetCore.Proxy.Options
         IHttpProxyOptionsBuilder WithIntercept(Func<HttpContext, ValueTask<bool>> intercept);
 
         /// <summary>
+        /// A <see cref="Func{HttpContext, Boolean}"/> that is invoked upon a call.
+        /// The result should be `true` if the call should go ahead and not be filtered
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns>This instance.</returns>
+        IHttpProxyOptionsBuilder WithFilter(Func<HttpContext, bool> filter);
+
+        /// <summary>
         /// An <see cref="Func{HttpContext, HttpRequestMessage, Task}"/> that is invoked before the call to the remote endpoint.
         /// The <see cref="HttpRequestMessage"/> can be edited before the call.
         /// </summary>
@@ -66,6 +74,7 @@ namespace AspNetCore.Proxy.Options
         private bool _shouldAddForwardedHeaders = true;
         private string _httpClientName;
         private Func<HttpContext, ValueTask<bool>> _intercept;
+        private Func<HttpContext, bool> _filter;
         private Func<HttpContext, HttpRequestMessage, Task> _beforeSend;
         private Func<HttpContext, HttpResponseMessage, Task> _afterReceive;
         private Func<HttpContext, Exception, Task> _handleFailure;
@@ -90,6 +99,7 @@ namespace AspNetCore.Proxy.Options
                 .WithShouldAddForwardedHeaders(_shouldAddForwardedHeaders)
                 .WithHttpClientName(_httpClientName)
                 .WithIntercept(_intercept)
+                .WithFilter(_filter)
                 .WithBeforeSend(_beforeSend)
                 .WithAfterReceive(_afterReceive)
                 .WithHandleFailure(_handleFailure);
@@ -103,6 +113,7 @@ namespace AspNetCore.Proxy.Options
                 _httpClientName,
                 _handleFailure,
                 _intercept,
+                _filter,
                 _beforeSend,
                 _afterReceive);
         }
@@ -140,6 +151,18 @@ namespace AspNetCore.Proxy.Options
         public IHttpProxyOptionsBuilder WithIntercept(Func<HttpContext, ValueTask<bool>> intercept)
         {
             _intercept = intercept;
+            return this;
+        }
+
+        /// <summary>
+        /// A <see cref="Func{HttpContext, Boolean}"/> that is invoked upon a call.
+        /// The result should be `true` if the call should go ahead and not be filtered
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns>This instance.</returns>
+        public IHttpProxyOptionsBuilder WithFilter(Func<HttpContext, bool> filter)
+        {
+            _filter = filter;
             return this;
         }
 
@@ -210,6 +233,15 @@ namespace AspNetCore.Proxy.Options
         /// The result should be `true` if the call is intercepted and **not** meant to be forwarded.
         /// </value>
         public Func<HttpContext, ValueTask<bool>> Intercept { get; }
+        
+        /// <summary>
+        /// Intercept property.
+        /// </summary>
+        /// <value>
+        /// A <see cref="Func{HttpContext, Boolean}"/> that is invoked upon a call.
+        /// The result should be `true` if the call should go ahead and not be filtered
+        /// </value>
+        public Func<HttpContext, bool> Filter { get; }
 
         /// <summary>
         /// BeforeSend property.
@@ -235,11 +267,11 @@ namespace AspNetCore.Proxy.Options
         /// <value>A <see cref="Func{HttpContext, Exception, Task}"/> that is invoked once if the proxy operation fails.</value>
         public Func<HttpContext, Exception, Task> HandleFailure { get; }
 
-        internal HttpProxyOptions(
-            bool shouldAddForwardedHeaders,
+        internal HttpProxyOptions(bool shouldAddForwardedHeaders,
             string httpClientName,
             Func<HttpContext, Exception, Task> handleFailure,
             Func<HttpContext, ValueTask<bool>> intercept,
+            Func<HttpContext, bool> filter,
             Func<HttpContext, HttpRequestMessage, Task> beforeSend,
             Func<HttpContext, HttpResponseMessage, Task> afterReceive)
         {
@@ -247,6 +279,7 @@ namespace AspNetCore.Proxy.Options
             HttpClientName = httpClientName;
             HandleFailure = handleFailure;
             Intercept = intercept;
+            Filter = filter;
             BeforeSend = beforeSend;
             AfterReceive = afterReceive;
         }
