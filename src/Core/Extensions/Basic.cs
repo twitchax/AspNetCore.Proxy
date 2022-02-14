@@ -266,6 +266,23 @@ namespace AspNetCore.Proxy
         /// <summary>
         /// Proxies a request inside of a controller's method body from the request on the controller's route.
         /// </summary>
+        /// <param name="context">The ASP.NET <see cref="HttpContext"/>.</param>
+        /// <param name="httpEndpoint">The HTTP endpoint to use.</param>
+        /// <param name="wsEndpoint">The WS endpoint to use.</param>
+        /// <param name="httpProxyOptions">The HTTP options.</param>
+        /// <param name="wsProxyOptions">The WS options.</param>
+        /// <returns>A <see cref="Task"/> which completes when the request has been successfully proxied and written to the response.</returns>
+        public static Task ProxyAsync(this HttpContext context, string httpEndpoint, string wsEndpoint, HttpProxyOptions httpProxyOptions = null, WsProxyOptions wsProxyOptions = null)
+        {
+            var httpProxy = new HttpProxy((c, a) => new ValueTask<string>(httpEndpoint), httpProxyOptions);
+            var wsProxy = new WsProxy((c, a) => new ValueTask<string>(wsEndpoint), wsProxyOptions);
+            var proxy = new Builders.Proxy(null, httpProxy, wsProxy);
+            return context.ExecuteProxyOperationAsync(proxy);
+        }
+
+        /// <summary>
+        /// Proxies a request inside of a controller's method body from the request on the controller's route.
+        /// </summary>
         /// <param name="controller">The ASP.NET <see cref="ControllerBase"/>.</param>
         /// <param name="httpEndpoint">The HTTP endpoint to use.</param>
         /// <param name="wsEndpoint">The WS endpoint to use.</param>
@@ -274,10 +291,20 @@ namespace AspNetCore.Proxy
         /// <returns>A <see cref="Task"/> which completes when the request has been successfully proxied and written to the response.</returns>
         public static Task ProxyAsync(this ControllerBase controller, string httpEndpoint, string wsEndpoint, HttpProxyOptions httpProxyOptions = null, WsProxyOptions wsProxyOptions = null)
         {
-            var httpProxy = new HttpProxy((c, a) => new ValueTask<string>(httpEndpoint), httpProxyOptions);
-            var wsProxy = new WsProxy((c, a) => new ValueTask<string>(wsEndpoint), wsProxyOptions);
-            var proxy = new Builders.Proxy(null, httpProxy, wsProxy);
-            return controller.HttpContext.ExecuteProxyOperationAsync(proxy);
+            return controller.HttpContext.ProxyAsync(httpEndpoint, wsEndpoint, httpProxyOptions, wsProxyOptions);
+        }
+
+        /// <summary>
+        /// Proxies a request inside of a controller's method body from the request on the controller's route.
+        /// </summary>
+        /// <param name="context">The ASP.NET <see cref="HttpContext"/>.</param>
+        /// <param name="httpEndpoint">The HTTP endpoint to use.</param>
+        /// <param name="httpProxyOptions">The HTTP options.</param>
+        /// <returns>A <see cref="Task"/> which completes when the request has been successfully proxied and written to the response.</returns>
+        public static Task HttpProxyAsync(this HttpContext context, string httpEndpoint, HttpProxyOptions httpProxyOptions = null)
+        {
+            var httpProxy = new HttpProxy((_, _) => new ValueTask<string>(httpEndpoint), httpProxyOptions);
+            return context.ExecuteHttpProxyOperationAsync(httpProxy);
         }
 
         /// <summary>
@@ -289,8 +316,20 @@ namespace AspNetCore.Proxy
         /// <returns>A <see cref="Task"/> which completes when the request has been successfully proxied and written to the response.</returns>
         public static Task HttpProxyAsync(this ControllerBase controller, string httpEndpoint, HttpProxyOptions httpProxyOptions = null)
         {
-            var httpProxy = new HttpProxy((c, a) => new ValueTask<string>(httpEndpoint), httpProxyOptions);
-            return controller.HttpContext.ExecuteHttpProxyOperationAsync(httpProxy);
+            return controller.HttpContext.HttpProxyAsync(httpEndpoint, httpProxyOptions);
+        }
+
+        /// <summary>
+        /// Proxies a request inside of a controller's method body from the request on the controller's route.
+        /// </summary>
+        /// <param name="context">The ASP.NET <see cref="HttpContext"/>.</param>
+        /// <param name="wsEndpoint">The WS endpoint to use.</param>
+        /// <param name="wsProxyOptions">The WS options.</param>
+        /// <returns>A <see cref="Task"/> which completes when the request has been successfully proxied and written to the response.</returns>
+        public static Task WsProxyAsync(this HttpContext context, string wsEndpoint, WsProxyOptions wsProxyOptions = null)
+        {
+            var wsProxy = new WsProxy((_, _) => new ValueTask<string>(wsEndpoint), wsProxyOptions);
+            return context.ExecuteWsProxyOperationAsync(wsProxy);
         }
 
         /// <summary>
@@ -302,8 +341,7 @@ namespace AspNetCore.Proxy
         /// <returns>A <see cref="Task"/> which completes when the request has been successfully proxied and written to the response.</returns>
         public static Task WsProxyAsync(this ControllerBase controller, string wsEndpoint, WsProxyOptions wsProxyOptions = null)
         {
-            var wsProxy = new WsProxy((c, a) => new ValueTask<string>(wsEndpoint), wsProxyOptions);
-            return controller.HttpContext.ExecuteWsProxyOperationAsync(wsProxy);
+            return controller.HttpContext.WsProxyAsync(wsEndpoint, wsProxyOptions);
         }
 
         #endregion
