@@ -104,6 +104,21 @@ services
     });
 ```
 
+#### Route All Unhandled Requests
+
+You can also route all unhandled requests to another server, e.g.
+
+```csharp
+app.UseStatusCodePages(async statusCodeContext =>
+{
+    var context = statusCodeContext.HttpContext;
+    if (context.Response.StatusCode == StatusCodes.Status404NotFound)
+    {
+        await context.HttpProxyAsync($"https://example.com/{context.Request.Path}");
+    }
+});
+```
+
 #### Existing Controller
 
 You can define a proxy over a specific endpoint on an existing `Controller` by leveraging the `ProxyAsync` extension methods.
