@@ -114,7 +114,11 @@ app.UseStatusCodePages(async statusCodeContext =>
     var context = statusCodeContext.HttpContext;
     if (context.Response.StatusCode == StatusCodes.Status404NotFound)
     {
-        await context.HttpProxyAsync($"https://example.com/{context.Request.Path}");
+        var request = context.Features.Get<IHttpRequestFeature>();
+        if (request != null)
+        {
+            await context.HttpProxyAsync($"https://example.com{request.RawTarget}");
+        }
     }
 });
 ```
