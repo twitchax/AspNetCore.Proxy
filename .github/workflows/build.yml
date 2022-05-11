@@ -15,7 +15,7 @@ jobs:
     - name: Setup .NET 5
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: '5.0'
+        dotnet-version: '6.0'
     - name: Build and run tests.
       run: dotnet test --collect:"XPlat Code Coverage"
     - name: Make artifacts directory.
