@@ -82,7 +82,7 @@ namespace AspNetCore.Proxy.Tests
         [Route("api/multipart")]
         public Task ProxyPostMultipartRequest()
         {
-            return this.HttpProxyAsync("https://httpbin.org/post");
+            return this.HttpProxyAsync("https://postman-echo.com/post");
         }
 
         [Route("api/catchall/{**rest}")]
