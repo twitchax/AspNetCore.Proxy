@@ -1,3 +1,4 @@
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -74,12 +75,13 @@ namespace AspNetCore.Proxy.Tests
             content.Add(new StringContent("123"), "xyz");
             content.Add(new StringContent("456"), "xyz");
             content.Add(new StringContent("321"), "abc");
-            const string fileString = "This is a test file.";
+            const string fileName = "Test こんにちは file.txt";
+            const string fileString = "This is a test file こんにちは with non-ascii content.";
             var fileContent = new StreamContent(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(fileString)));
-            content.Add(fileContent, "testFile", "Test file.txt");
+            content.Add(fileContent, "testFile", fileName);
+            
             var response = await _client.PostAsync("api/multipart", content);
             response.EnsureSuccessStatusCode();
-
             var responseString = await response.Content.ReadAsStringAsync();
             var json = JObject.Parse(responseString);
 
@@ -93,7 +95,9 @@ namespace AspNetCore.Proxy.Tests
 
             var files = Assert.IsAssignableFrom<JObject>(json["files"]);
             Assert.Single(files);
-            Assert.Equal(fileString, files["testFile"]);
+            var file = files.ToObject<Dictionary<string, string>>().Single();
+            Assert.Equal($"data:application/octet-stream;base64,{Convert.ToBase64String(Encoding.UTF8.GetBytes(fileString))}", file.Value);
+            Assert.Equal(fileName, file.Key);
         }
 
         [Fact]
