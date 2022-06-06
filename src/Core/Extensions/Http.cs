@@ -85,7 +85,7 @@ namespace AspNetCore.Proxy
                 if (request.HasFormContentType)
                 {
                     usesStreamContent = false;
-                    requestMessage.Content = request.Form.ToHttpContent(request.ContentType);
+                    requestMessage.Content = request.Form.ToHttpContent(request);
                 }
                 else
                 {

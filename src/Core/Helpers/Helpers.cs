@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
@@ -72,7 +73,7 @@ namespace AspNetCore.Proxy
             return s.Substring(0, s.Length - count);
         }
 
-        internal static HttpContent ToHttpContent(this IFormCollection collection, string contentTypeHeader)
+        internal static HttpContent ToHttpContent(this IFormCollection collection, HttpRequest request)
         {
             // @PreferLinux:
             // Form content types resource: https://stackoverflow.com/questions/4526273/what-does-enctype-multipart-form-data-mean/28380690
@@ -84,7 +85,7 @@ namespace AspNetCore.Proxy
             // A single form element can have multiple values. When sending them they are handled as separate items with the same name, not a singe item with multiple values.
             // For example, a=1&a=2.
 
-            var contentType = MediaTypeHeaderValue.Parse(contentTypeHeader);
+            var contentType = MediaTypeHeaderValue.Parse(request.ContentType);
 
             if (contentType.MediaType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase)) // specification: https://url.spec.whatwg.org/#concept-urlencoded
                 return new FormUrlEncodedContent(collection.SelectMany(formItemList => formItemList.Value.Select(value => new KeyValuePair<string, string>(formItemList.Key, value))));
@@ -106,9 +107,15 @@ namespace AspNetCore.Proxy
             foreach (var file in collection.Files)
             {
                 var content = new StreamContent(file.OpenReadStream());
-                foreach (var header in file.Headers)
+                foreach (var header in file.Headers.Where(h => !h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)))
                     content.Headers.TryAddWithoutValidation(header.Key, (IEnumerable<string>)header.Value);
-                multipart.Add(content, file.Name, file.FileName);
+
+                // Force content-disposition header to use raw string to ensure UTF-8 is well encoded.
+                content.Headers.TryAddWithoutValidation("Content-Disposition",
+                    new string(Encoding.UTF8.GetBytes($"form-data; name=\"{file.Name}\"; filename=\"{file.FileName}\"").
+                    Select(b => (char)b).ToArray()));
+
+                multipart.Add(content);
             }
             return multipart;
         }

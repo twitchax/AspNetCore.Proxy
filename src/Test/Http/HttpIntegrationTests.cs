@@ -79,7 +79,7 @@ namespace AspNetCore.Proxy.Tests
             const string fileString = "This is a test file こんにちは with non-ascii content.";
             var fileContent = new StreamContent(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(fileString)));
             content.Add(fileContent, "testFile", fileName);
-            
+
             var response = await _client.PostAsync("api/multipart", content);
             response.EnsureSuccessStatusCode();
             var responseString = await response.Content.ReadAsStringAsync();
