@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using AspNetCore.Proxy.Options;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Http.Features;
 
 [assembly: SuppressMessage("Readability", "RCS1090", Justification = "Not a library, so no need for `ConfigureAwait`.")]
 
@@ -142,6 +143,31 @@ namespace AspNetCore.Proxy.Tests
 
             return this.HttpProxyAsync($"https://jsonplaceholder.typicode.com/posts/{postId}", options);
         }
+
+        [Route("api/controller/customreasonphase")]
+        public void GetWithCustomReasonPhase(int postId)
+        {
+        }
+
+        [Route("api/controller/customreasonphase/proxy")]
+        public Task GetWithCustomReasonPhase()
+        {
+            var options = HttpProxyOptionsBuilder.Instance.WithIntercept(
+                async (ctx) =>
+                {
+                    var httpResponseFeature = ctx.Features.Get<IHttpResponseFeature>();
+                    if (httpResponseFeature != null)
+                    {
+                        httpResponseFeature.ReasonPhrase = "I am dummy!";
+                    }
+
+                    return true;
+
+                }).Build();
+                
+            return this.HttpProxyAsync("https://postman-echo.com/post", options);
+        }
+
 
         [Route("api/controller/timeoutclient/{postId}")]
         public Task GetWithTimeoutClient(int postId)
