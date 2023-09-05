@@ -6,7 +6,7 @@
     <Version>4.4.0</Version>
     <PackageProjectUrl>https://github.com/twitchax/aspnetcore.proxy</PackageProjectUrl>
 
-    <TargetFrameworks>netcoreapp3.1;netstandard2.0;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net7.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <IsTestProject>false</IsTestProject>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
