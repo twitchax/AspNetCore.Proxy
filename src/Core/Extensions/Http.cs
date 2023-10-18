@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AspNetCore.Proxy.Builders;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AspNetCore.Proxy
@@ -124,6 +125,13 @@ namespace AspNetCore.Proxy
             var response = context.Response;
 
             response.StatusCode = (int)responseMessage.StatusCode;
+
+            var httpResponseFeature = context.Features.Get<IHttpResponseFeature>();
+            if (httpResponseFeature != null)
+            {
+                httpResponseFeature.ReasonPhrase = responseMessage.ReasonPhrase;
+            }
+
             foreach (var header in responseMessage.Headers)
             {
                 response.Headers[header.Key] = header.Value.ToArray();

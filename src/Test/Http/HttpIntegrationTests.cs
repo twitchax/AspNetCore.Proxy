@@ -207,6 +207,15 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task CanProxyReasonPhase()
+        {
+            var response = await _client.GetAsync("api/controller/customreasonphase/proxy");
+
+            response.EnsureSuccessStatusCode();
+            Assert.Equal("I am dummy!", response.ReasonPhrase);
+        }
+
+        [Fact]
         public async Task CanProxyConcurrentCalls()
         {
             var calls = Enumerable.Range(1, 100).Select(i => _client.GetAsync($"api/controller/posts/{i}"));
