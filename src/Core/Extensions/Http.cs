@@ -20,9 +20,6 @@ namespace AspNetCore.Proxy
 
             try
             {
-                var httpClient = context.RequestServices
-                    .GetService<IHttpClientFactory>()
-                    .CreateClient(options?.HttpClientName ?? Helpers.HttpProxyClientName);
                 var clientFactory = context.RequestServices.GetService<IHttpClientFactory>()
                 ?? throw new InvalidOperationException("IHttpClientFactory not registered. You need to add builder.Services.AddHttpClient(); during startup");
 
