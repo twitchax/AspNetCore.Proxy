@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>AspNetCore.Proxy</AssemblyName>
     <PackageId>AspNetCore.Proxy</PackageId>
-    <Version>4.4.0</Version>
+    <Version>4.5.0</Version>
     <PackageProjectUrl>https://github.com/twitchax/aspnetcore.proxy</PackageProjectUrl>
 
     <TargetFrameworks>netstandard2.0;net6.0;net7.0</TargetFrameworks>
@@ -13,6 +13,10 @@
     <IsPackable>true</IsPackable>
     <OutputType>Library</OutputType>
   </PropertyGroup>
+
+  <PropertyGroup>
+  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+</PropertyGroup>
   
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.AspNetCore" Version="2.1.0" />

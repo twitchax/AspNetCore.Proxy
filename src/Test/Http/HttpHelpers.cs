@@ -153,7 +153,7 @@ namespace AspNetCore.Proxy.Tests
         public Task GetWithCustomReasonPhase()
         {
             var options = HttpProxyOptionsBuilder.Instance.WithIntercept(
-                async (ctx) =>
+                (ctx) =>
                 {
                     var httpResponseFeature = ctx.Features.Get<IHttpResponseFeature>();
                     if (httpResponseFeature != null)
@@ -161,7 +161,7 @@ namespace AspNetCore.Proxy.Tests
                         httpResponseFeature.ReasonPhrase = "I am dummy!";
                     }
 
-                    return true;
+                    return new ValueTask<bool>(true);
 
                 }).Build();
                 
