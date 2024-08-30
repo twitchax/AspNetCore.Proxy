@@ -75,10 +75,16 @@ namespace AspNetCore.Proxy.Tests
             content.Add(new StringContent("123"), "xyz");
             content.Add(new StringContent("456"), "xyz");
             content.Add(new StringContent("321"), "abc");
+
             const string fileName = "Test こんにちは file.txt";
             const string fileString = "This is a test file こんにちは with non-ascii content.";
             var fileContent = new StreamContent(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(fileString)));
             content.Add(fileContent, "testFile", fileName);
+
+            const string fileName2 = "Test2.txt";
+            const string fileString2 = "This is a test file with content.";
+            var fileContent2 = new StreamContent(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(fileString2)));
+            content.Add(fileContent2, "testFile2", fileName2);
 
             var response = await _client.PostAsync("api/multipart", content);
             response.EnsureSuccessStatusCode();
@@ -94,8 +100,9 @@ namespace AspNetCore.Proxy.Tests
             Assert.Equal("321", form["abc"]);
 
             var files = Assert.IsAssignableFrom<JObject>(json["files"]);
-            Assert.Single(files);
-            var file = files.ToObject<Dictionary<string, string>>().Single();
+            Assert.Equal(2, files.Count);
+            
+            var file = files.ToObject<Dictionary<string, string>>().First();
             Assert.Equal($"data:application/octet-stream;base64,{Convert.ToBase64String(Encoding.UTF8.GetBytes(fileString))}", file.Value);
             Assert.Equal(fileName, file.Key);
         }

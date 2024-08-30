@@ -69,7 +69,17 @@ namespace AspNetCore.Proxy.Tests
                 })
                 .Build().RunAsync(token);
 
-            return Task.WhenAll(proxiedServerTask, proxyServerTask, proxyServerTask2);
+            var proxyServerTask3 = WebHost.CreateDefaultBuilder()
+                .SuppressStatusMessages(true)
+                .ConfigureLogging(logging => logging.ClearProviders())
+                .ConfigureKestrel(options => options.ListenLocalhost(5008))
+                .Configure(app =>
+                {
+                    app.RunProxy(proxy => proxy.UseHttp("http://localhost:5004"));
+                })
+                .Build().RunAsync(token);
+
+            return Task.WhenAll(proxiedServerTask, proxyServerTask, proxyServerTask2, proxyServerTask3);
         }
     }
 }

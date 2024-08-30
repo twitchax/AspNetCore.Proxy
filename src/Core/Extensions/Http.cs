@@ -21,7 +21,7 @@ namespace AspNetCore.Proxy
             try
             {
                 var clientFactory = context.RequestServices.GetService<IHttpClientFactory>()
-                ?? throw new InvalidOperationException("IHttpClientFactory not registered. You need to add builder.Services.AddHttpClient(); during startup");
+                ?? throw new InvalidOperationException("IHttpClientFactory not registered. You need to add `services.AddProxies()` during startup (or configure a custom client with `builder.Services.AddHttpClient()`).");
 
                 var httpClient = clientFactory.CreateClient(options?.HttpClientName ?? Helpers.HttpProxyClientName);
 

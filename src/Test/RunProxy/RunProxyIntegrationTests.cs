@@ -115,5 +115,12 @@ namespace AspNetCore.Proxy.Tests
         {
             await Assert.ThrowsAnyAsync<WebSocketException>(async () => await _wsClient.ConnectAsync(new Uri("ws://localhost:5003/should/forward/to/http"), CancellationToken.None));
         }
+
+        [Fact]
+        public async Task CanFailWhenIHttpClientFactoryNotRegistered()
+        {
+            var response = await _httpClient.PostAsync("http://localhost:5008/at/some/other/path", new StringContent("foo"), CancellationToken.None);
+            Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+        }
     }
 }
