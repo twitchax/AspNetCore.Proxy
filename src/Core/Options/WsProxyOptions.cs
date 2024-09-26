@@ -27,6 +27,14 @@ namespace AspNetCore.Proxy.Options
         IWsProxyOptionsBuilder WithIntercept(Func<HttpContext, ValueTask<bool>> intercept);
 
         /// <summary>
+        /// A <see cref="Func{ArraySegment, WsProxyDataDirection, WebSocketMessageType, Task}"/> that is invoked upon a new message.
+        /// This allows for the data to be intercepted and modified before being forwarded. 
+        /// </summary>
+        /// <param name="dataIntercept"></param>
+        /// <returns>This instance.</returns>
+        IWsProxyOptionsBuilder WithDataIntercept(Func<ArraySegment<byte>, WsProxyDataDirection, WebSocketMessageType, Task> dataIntercept);
+
+        /// <summary>
         /// An <see cref="Func{HttpContext, ClientWebSocketOptions, Task}"/> that is invoked before the connect to the remote endpoint.
         /// The <see cref="ClientWebSocketOptions"/> can be edited before the call.
         /// </summary>
@@ -49,6 +57,7 @@ namespace AspNetCore.Proxy.Options
     {
         private int _bufferSize = 4096;
         private Func<HttpContext, ValueTask<bool>> _intercept;
+        private Func<ArraySegment<byte>, WsProxyDataDirection, WebSocketMessageType, Task> _dataIntercept;
         private Func<HttpContext, ClientWebSocketOptions, Task> _beforeConnect;
         private Func<HttpContext, Exception, Task> _handleFailure;
 
@@ -71,6 +80,7 @@ namespace AspNetCore.Proxy.Options
             return Instance
                 .WithBufferSize(_bufferSize)
                 .WithIntercept(_intercept)
+                .WithDataIntercept(_dataIntercept)
                 .WithBeforeConnect(_beforeConnect)
                 .WithHandleFailure(_handleFailure);
         }
@@ -81,6 +91,7 @@ namespace AspNetCore.Proxy.Options
             return new WsProxyOptions(
                 _bufferSize,
                 _intercept,
+                _dataIntercept,
                 _beforeConnect,
                 _handleFailure);
         }
@@ -107,6 +118,18 @@ namespace AspNetCore.Proxy.Options
             _intercept = intercept;
             return this;
         }
+
+        /// <summary>
+        /// Sets the <see cref="Func{ArraySegment, WsProxyDataDirection, WebSocketMessageType, Task}"/> that is invoked upon a new data message.
+        /// </summary>
+        /// <param name="dataIntercept"></param>
+        /// <returns>The current instance with the specified option set.</returns>
+        public IWsProxyOptionsBuilder WithDataIntercept(Func<ArraySegment<byte>, WsProxyDataDirection, WebSocketMessageType, Task> dataIntercept)
+        {
+            _dataIntercept = dataIntercept;
+            return this;
+        }
+
 
         /// <summary>
         /// Sets the <see cref="Func{HttpContext, ClientWebSocketOptions, Task}"/> that is invoked upon a new connection.
@@ -156,6 +179,14 @@ namespace AspNetCore.Proxy.Options
         public Func<HttpContext, ValueTask<bool>> Intercept { get; }
 
         /// <summary>
+        /// DataIntercept property.
+        /// </summary>
+        /// <value>
+        /// A <see cref="Func{ArraySegment, WsProxyDataDirection, WebSocketMessageType, Task}"/> that is invoked upon a data call.
+        /// </value>
+        public Func<ArraySegment<byte>, WsProxyDataDirection, WebSocketMessageType, Task> DataIntercept { get; }
+
+        /// <summary>
         /// BeforeConnect property.
         /// </summary>
         /// <value>
@@ -175,11 +206,13 @@ namespace AspNetCore.Proxy.Options
         internal WsProxyOptions(
             int bufferSize,
             Func<HttpContext, ValueTask<bool>> intercept,
+            Func<ArraySegment<byte>, WsProxyDataDirection, WebSocketMessageType, Task> dataIntercept,
             Func<HttpContext, ClientWebSocketOptions, Task> beforeConnect,
             Func<HttpContext, Exception, Task> handleFailure)
         {
             BufferSize = bufferSize;
             Intercept = intercept;
+            DataIntercept = dataIntercept;
             BeforeConnect = beforeConnect;
             HandleFailure = handleFailure;
         }

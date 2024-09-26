@@ -49,6 +49,20 @@ namespace AspNetCore.Proxy
         TConcrete Build();
     }
 
+    /// <summary>
+    /// The direction of the data flow.
+    /// </summary>
+    public enum WsProxyDataDirection {
+        /// <summary>
+        /// The data is flowing from the client to the server.
+        /// </summary> 
+        Upstream,
+        /// <summary>
+        /// The data is flowing from the server to the client.
+        /// </summary>
+        Downstream
+    }
+
     internal static class Helpers
     {
         internal static readonly string HttpProxyClientName = "AspNetCore.Proxy.HttpProxyClient";

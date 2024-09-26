@@ -137,6 +137,32 @@ namespace AspNetCore.Proxy.Tests
         }
 
         [Fact]
+        public async Task CanDataIntercept()
+        {
+            var send1 = "should_be_intercepted";
+            var expected1 = $"]{send1}]";
+
+            await _client.ConnectAsync(new Uri("ws://localhost:5001/ws"), CancellationToken.None);
+            Assert.Equal(Extensions.SupportedProtocol, _client.SubProtocol);
+
+            // Send a message.
+            await _client.SendMessageAsync(send1);
+            await _client.SendShortMessageAsync(Extensions.CloseMessage);
+
+            // Receive responses.
+            var response1 = await _client.ReceiveMessageAsync();
+            Assert.Equal(expected1, response1);
+
+            // Receive close.
+            var result = await _client.ReceiveAsync(new ArraySegment<byte>(new byte[4096]), CancellationToken.None);
+            Assert.Equal(WebSocketMessageType.Close, result.MessageType);
+            Assert.Equal(WebSocketCloseStatus.NormalClosure, result.CloseStatus);
+            Assert.Equal(Extensions.CloseDescription, result.CloseStatusDescription);
+
+            await _client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, Extensions.CloseDescription, CancellationToken.None);
+        }
+
+        [Fact]
         public async Task CanRunBeforeConnectAndHandleFailure()
         {
             // Because there is no protocol attached, the `BeforeConnect` uses a bad endpoint protocol.

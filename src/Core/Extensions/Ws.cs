@@ -50,7 +50,10 @@ namespace AspNetCore.Proxy
                 using var socketToClient = await context.WebSockets.AcceptWebSocketAsync(socketToEndpoint.SubProtocol).ConfigureAwait(false);
 
                 var bufferSize = options?.BufferSize ?? 4096;
-                await Task.WhenAll(PumpWebSocket(socketToEndpoint, socketToClient, bufferSize, context.RequestAborted), PumpWebSocket(socketToClient, socketToEndpoint, bufferSize, context.RequestAborted)).ConfigureAwait(false);
+                await Task.WhenAll(
+                    PumpWebSocket(socketToEndpoint, socketToClient, WsProxyDataDirection.Downstream, wsProxy, bufferSize, context.RequestAborted), 
+                    PumpWebSocket(socketToClient, socketToEndpoint, WsProxyDataDirection.Upstream, wsProxy, bufferSize, context.RequestAborted)
+                ).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -69,7 +72,7 @@ namespace AspNetCore.Proxy
             }
         }
 
-        private static async Task PumpWebSocket(WebSocket source, WebSocket destination, int bufferSize, CancellationToken cancellationToken)
+        private static async Task PumpWebSocket(WebSocket source, WebSocket destination, WsProxyDataDirection direction, WsProxy wsProxy, int bufferSize, CancellationToken cancellationToken)
         {
             using var ms = new MemoryStream();
             var receiveBuffer = WebSocket.CreateServerBuffer(bufferSize);
@@ -113,8 +116,11 @@ namespace AspNetCore.Proxy
 
                 var sendBuffer = new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
 
-                // TODO: Add handlers here to allow the developer to edit message before forwarding, and vice versa?
-                // Possibly in the future, if deemed useful.
+                // If the data intercept is set, then invoke it.
+                if(wsProxy.Options?.DataIntercept != null)
+                {
+                    await wsProxy.Options.DataIntercept(sendBuffer, direction, result.MessageType).ConfigureAwait(false);
+                }
 
                 await destination.SendAsync(sendBuffer, result.MessageType, result.EndOfMessage, cancellationToken).ConfigureAwait(false);
             }
