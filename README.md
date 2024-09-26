@@ -213,6 +213,13 @@ public class MyController : Controller
     private WsProxyOptions _wsOptions = WsProxyOptionsBuilder.Instance
         .WithBufferSize(8192)
         .WithIntercept(context => new ValueTask<bool>(context.WebSockets.WebSocketRequestedProtocols.Contains("interceptedProtocol")))
+        .WithDataIntercept((data, direction, type) =>
+        {
+            if(direction == WsProxyDataDirection.Downstream && System.Text.Encoding.Default.GetString(data.Array).StartsWith("BAD")) 
+                data.Array[0] = (byte)'M';
+
+            return Task.CompletedTask;
+        })
         .WithBeforeConnect((context, wso) =>
         {
             wso.AddSubProtocol("myRandomProto");

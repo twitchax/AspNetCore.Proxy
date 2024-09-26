@@ -61,7 +61,8 @@ namespace AspNetCore.Proxy.Tests
                             .UseWs("ws://localhost:5002/", options => options
                                 .WithBufferSize(8192)
                                 .WithIntercept(context => new ValueTask<bool>(context.WebSockets.WebSocketRequestedProtocols.Contains("interceptedProtocol")))
-                                .WithDataIntercept((data, direction, type) => {
+                                .WithDataIntercept((data, direction, type) =>
+                                {
                                     if(direction == WsProxyDataDirection.Downstream && System.Text.Encoding.Default.GetString(data.Array).StartsWith("[should_be_intercepted]"))
                                         data.Array[0] = (byte)']';
 
