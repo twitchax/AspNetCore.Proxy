@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -39,7 +40,13 @@ namespace AspNetCore.Proxy
                 foreach (var headerEntry in context.Request.Headers)
                 {
                     if (!Helpers.WebSocketNotForwardedHeaders.Contains(headerEntry.Key, StringComparer.OrdinalIgnoreCase))
-                        socketToEndpoint.Options.SetRequestHeader(headerEntry.Key, headerEntry.Value);
+                    {
+                        if (!WebHeaderCollection.IsRestricted(headerEntry.Key))
+                        {
+                            socketToEndpoint.Options.SetRequestHeader(headerEntry.Key, headerEntry.Value);
+                        }
+                    }
+                        
                 }
 
                 if(options?.BeforeConnect != null)
