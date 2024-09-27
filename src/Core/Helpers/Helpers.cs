@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace AspNetCore.Proxy
 {
@@ -120,16 +121,25 @@ namespace AspNetCore.Proxy
             }
             foreach (var file in collection.Files)
             {
-                var content = new StreamContent(file.OpenReadStream());
-                foreach (var header in file.Headers.Where(h => !h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)))
-                    content.Headers.TryAddWithoutValidation(header.Key, (IEnumerable<string>)header.Value);
+                var ms = new MemoryStream();
 
-                // Force content-disposition header to use raw string to ensure UTF-8 is well encoded.
-                content.Headers.TryAddWithoutValidation("Content-Disposition",
-                    new string(Encoding.UTF8.GetBytes($"form-data; name=\"{file.Name}\"; filename=\"{file.FileName}\"").
-                    Select(b => (char)b).ToArray()));
+                using (var fs = file.OpenReadStream())
+                {
+                    //copy content to a new stream to prevent exception
+                    //when multiple files are included in the initial request
+                    fs.CopyTo(ms);
+                    var content = new StreamContent(ms);
 
-                multipart.Add(content);
+                    foreach (var header in file.Headers.Where(h => !h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)))
+                        content.Headers.TryAddWithoutValidation(header.Key, (IEnumerable<string>)header.Value);
+
+                    // Force content-disposition header to use raw string to ensure UTF-8 is well encoded.
+                    content.Headers.TryAddWithoutValidation("Content-Disposition",
+                        new string(Encoding.UTF8.GetBytes($"form-data; name=\"{file.Name}\"; filename=\"{file.FileName}\"").
+                        Select(b => (char)b).ToArray()));
+
+                    multipart.Add(content);
+                }
             }
             return multipart;
         }
