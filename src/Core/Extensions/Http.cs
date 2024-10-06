@@ -97,7 +97,13 @@ namespace AspNetCore.Proxy
             var textBased = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "application/json",
-                "application/xml"
+                "application/xml",
+                "text/html",
+                "text/plain",
+                "text/css",
+                "text/javascript",
+                "text/markdown",
+                "text/csv"
             };
             
             return textBased.Contains(GetContentType(request));
@@ -127,7 +133,7 @@ namespace AspNetCore.Proxy
                 {
                     usesStreamContent = false;
                     var bodyString = await ReadRequestBodyAsStringAsync(request);
-                    requestMessage.Content = new StringContent(bodyString);
+                    requestMessage.Content = new StringContent(bodyString, Encoding.UTF8, GetContentType(request));
                 }
                 else
                 {
