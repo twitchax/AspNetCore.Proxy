@@ -125,6 +125,7 @@ namespace AspNetCore.Proxy
                 }
                 else if(IsTextBasedMimeType(request))
                 {
+                    usesStreamContent = false;
                     var bodyString = await ReadRequestBodyAsStringAsync(request);
                     requestMessage.Content = new StringContent(bodyString);
                 }
