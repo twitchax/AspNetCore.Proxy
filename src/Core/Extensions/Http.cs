@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -40,7 +42,7 @@ namespace AspNetCore.Proxy
                         throw new InvalidOperationException("Only forwarded addresses starting with 'http://' or 'https://' are supported for HTTP requests.");
                 }
 
-                var proxiedRequest = context.CreateProxiedHttpRequest(uri, options?.ShouldAddForwardedHeaders ?? true);
+                var proxiedRequest = await context.CreateProxiedHttpRequestAsync(uri, options?.ShouldAddForwardedHeaders ?? true);
 
                 if(options?.BeforeSend != null)
                     await options.BeforeSend(context, proxiedRequest).ConfigureAwait(false);
@@ -69,7 +71,45 @@ namespace AspNetCore.Proxy
             }
         }
 
-        private static HttpRequestMessage CreateProxiedHttpRequest(this HttpContext context, string uriString, bool shouldAddForwardedHeaders)
+        private async static Task<string> ReadRequestBodyAsStringAsync(HttpRequest request)
+        {
+            request.EnableBuffering();
+            request.Body.Position = 0;
+
+            using var reader = new StreamReader(request.Body, Encoding.UTF8);
+            var bodyString = await reader.ReadToEndAsync();
+            request.Body.Position = 0;
+
+            return bodyString;
+        }
+
+        private static string GetContentType(HttpRequest request)
+        {
+            if(request.Headers.TryGetValue("Content-Type", out var contentType))
+            {
+                return contentType.ToString();
+            }
+            return request.ContentType;
+        }
+
+        private static bool IsTextBasedMimeType(HttpRequest request)
+        {
+            var textBased = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "application/json",
+                "application/xml",
+                "text/html",
+                "text/plain",
+                "text/css",
+                "text/javascript",
+                "text/markdown",
+                "text/csv"
+            };
+            
+            return textBased.Contains(GetContentType(request));
+        }
+
+        private async static Task<HttpRequestMessage> CreateProxiedHttpRequestAsync(this HttpContext context, string uriString, bool shouldAddForwardedHeaders)
         {
             var uri = new Uri(uriString);
             var request = context.Request;
@@ -88,6 +128,12 @@ namespace AspNetCore.Proxy
                 {
                     usesStreamContent = false;
                     requestMessage.Content = request.Form.ToHttpContent(request);
+                }
+                else if(IsTextBasedMimeType(request))
+                {
+                    usesStreamContent = false;
+                    var bodyString = await ReadRequestBodyAsStringAsync(request);
+                    requestMessage.Content = new StringContent(bodyString, Encoding.UTF8, GetContentType(request));
                 }
                 else
                 {
